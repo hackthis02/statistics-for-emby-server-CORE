@@ -251,7 +251,7 @@
 
                         return html;
                     },
-                    createStatWithPoster: function (v) {
+                    createStatWithPoster: function (v, i) {
                         var html = '<div class="col ' +
                             v.Size +
                             '"><div class="statCard"><div class="statCard-content">';
@@ -264,7 +264,7 @@
                                 "');\"><i class=\"md-icon\">info_outline</i></div>";
 
                         if (v.Id !== undefined) {
-                            html += '<a href=/web/itemdetails.html?id=' + v.Id + '><img src="/Items/' + v.Id + '/Images/Primary" height="105px"></a>'
+                            html += '<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + i + '"><img src="/Items/' + v.Id + '/Images/Primary" height="105px"></a>'
                             html += '<div>'
                         }
 
@@ -306,25 +306,25 @@
                                 $("#movieStat", page).append(MainPage.createStat(config.TotalMovies));
                                 $("#movieStat", page).append(MainPage.createStat(config.TotalBoxsets));
                                 $("#movieStat", page).append(MainPage.createStat(config.TotalMovieStudios));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.BiggestMovie));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.LongestMovie));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.NewestAddedMovie));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.OldestMovie));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.NewestMovie));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.HighestRating));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.LowestRating));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.HighestBitrateMovie));
-                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.LowestBitrateMovie));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.BiggestMovie, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.LongestMovie, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.NewestAddedMovie, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.OldestMovie, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.NewestMovie, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.HighestRating, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.LowestRating, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.HighestBitrateMovie, config.ServerId));
+                                $("#movieStat", page).append(MainPage.createStatWithPoster(config.LowestBitrateMovie, config.ServerId));
 
 
                                 $("#showStat", page).append(MainPage.createStat(config.TotalShows));
                                 $("#showStat", page).append(MainPage.createStat(config.TotalOwnedEpisodes));
                                 $("#showStat", page).append(MainPage.createStat(config.TotalShowStudios));
-                                $("#showStat", page).append(MainPage.createStatWithPoster(config.BiggestShow));
-                                $("#showStat", page).append(MainPage.createStatWithPoster(config.LongestShow));
-                                $("#showStat", page).append(MainPage.createStatWithPoster(config.OldestShow));
-                                $("#showStat", page).append(MainPage.createStatWithPoster(config.NewestShow));
-                                $("#showStat", page).append(MainPage.createStatWithPoster(config.NewestAddedEpisode));
+                                $("#showStat", page).append(MainPage.createStatWithPoster(config.BiggestShow, config.ServerId));
+                                $("#showStat", page).append(MainPage.createStatWithPoster(config.LongestShow, config.ServerId));
+                                $("#showStat", page).append(MainPage.createStatWithPoster(config.OldestShow, config.ServerId));
+                                $("#showStat", page).append(MainPage.createStatWithPoster(config.NewestShow, config.ServerId));
+                                $("#showStat", page).append(MainPage.createStatWithPoster(config.NewestAddedEpisode, config.ServerId));
                                 
                                 Dashboard.hideLoadingMsg();
                             }

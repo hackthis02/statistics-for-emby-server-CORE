@@ -1,5 +1,4 @@
 ﻿using System;
-using Statistics.Enum;
 
 namespace Statistics.ViewModel
 {

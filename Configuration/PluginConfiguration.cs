@@ -43,6 +43,7 @@ namespace statistics.Configuration
 
         public string LastUpdated { get; set; }
         public string Version { get; set; }
+        public string ServerId { get; set; }
 
         public List<MovieQuality> MovieQualityItems { get; set; }
 
