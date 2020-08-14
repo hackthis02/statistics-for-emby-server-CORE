@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
+using MediaBrowser.Model.Drawing;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
 using statistics.Configuration;
 
 namespace statistics
 {
-    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
+    public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IHasThumbImage
     {
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
             : base(applicationPaths, xmlSerializer)
@@ -56,5 +58,19 @@ namespace statistics
         public override string Name => "Statistics";
 
         public override string Description => "Get statistics from your collection";
+
+        public Stream GetThumbImage()
+        {
+            var type = GetType();
+            return type.Assembly.GetManifestResourceStream(type.Namespace + ".Images.statistics-thumb.png");
+        }
+
+        public ImageFormat ThumbImageFormat
+        {
+            get
+            {
+                return ImageFormat.Png;
+            }
+        }
     }
 }
