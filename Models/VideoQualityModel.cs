@@ -32,7 +32,7 @@ namespace Statistics.Models
                     quality = "4K";
                     break;
                 default:
-                    quality = "unkown";
+                    quality = "Unknown";
                     break;
             }
 

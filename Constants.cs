@@ -37,7 +37,7 @@
         internal const string LowestMovieRating = "Lowest Movie Rating";
         internal const string HighestBitrate = "Highest Movie Bitrate";
         internal const string LowestBitrate = "Lowest Movie Bitrate";
-        internal const string TotalStudios = "Total Studio's";
+        internal const string TotalStudios = "Total Studios";
         internal const string TotalUsers = "Total Users";
 
         //Help text for stats

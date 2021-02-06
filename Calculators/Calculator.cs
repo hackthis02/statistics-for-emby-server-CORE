@@ -593,9 +593,9 @@ namespace Statistics.Helpers
                         maxSize = showSize;
                         biggestShow = show;
                     }
-                    catch (Exception)
+                    catch (Exception e)
                     {
-                        // ignored
+                        _logger.Error(e.Message.ToString());
                     }
                 }
 
@@ -718,15 +718,20 @@ namespace Statistics.Helpers
                 long maxTime = 0;
                 foreach (var show in shows)
                 {
-                    //This is assuming the recommened folder structure for series/season/episode
-                    //https://github.com/MediaBrowser/Emby/wiki/TV-Library
-                    var episodes = GetAllEpisodes().Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null);
-                    var showSize = episodes.Sum(x => x.RunTimeTicks ?? 0);
+                    try
+                    {
+                        //This is assuming the recommened folder structure for series/season/episode
+                        //https://github.com/MediaBrowser/Emby/wiki/TV-Library
+                        var episodes = GetAllEpisodes().Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null);
+                        var showSize = episodes.Sum(x => x.RunTimeTicks ?? 0);
 
-                    if (maxTime >= showSize) continue;
+                        if (maxTime >= showSize) continue;
 
-                    maxTime = showSize;
-                    maxShow = show;
+                        maxTime = showSize;
+                        maxShow = show;
+                    }
+                    catch(Exception e)
+                    { }
 
                 }
 

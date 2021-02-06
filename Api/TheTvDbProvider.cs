@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,8 +15,7 @@ namespace Statistics.Api
     {
         private const string SeriesGetZip = "https://www.thetvdb.com/api/{0}/series/{1}/all/{2}.zip";
         private const string ServerTimeUrl = "https://thetvdb.com/api/Updates.php?type=none";
-        private const string UpdatesUrl = "https://thetvdb.com/api/Updates.php?type=all&time={0}";
-        private const string ApiKey = "3B9470F2306003B8";
+        private const string ApiKey = "82a72ddf3d6a98d04c6b9a6ba94d84de";
         private readonly IFileSystem _fileSystem;
         private readonly IHttpClient _httpClient;
         private readonly IServerApplicationPaths _serverApplicationPaths;
@@ -74,41 +72,6 @@ namespace Statistics.Api
             var result = ExtractEpisodes(downloadLangaugeXmlFile);
             _fileSystem.DeleteDirectory(fullPath, true);
             return result;
-        }
-
-        public async Task<IEnumerable<string>> GetSeriesIdsToUpdate(IEnumerable<string> existingSeriesIds,
-            string lastUpdateTime, CancellationToken cancellationToken)
-        {
-            // First get last time
-            using (var stream = await _httpClient.Get(new HttpRequestOptions
-            {
-                Url = string.Format(UpdatesUrl, lastUpdateTime),
-                CancellationToken = cancellationToken,
-                EnableHttpCompression = true
-            }).ConfigureAwait(false))
-            {
-                var data = GetUpdatedSeriesIdList(stream);
-
-                var existingDictionary = existingSeriesIds.Distinct().ToDictionary(i => i, StringComparer.OrdinalIgnoreCase);
-
-                return data.Item1.Where(i => !string.IsNullOrWhiteSpace(i) && existingDictionary.ContainsKey(i));
-            }
-        }
-
-        private Tuple<List<string>, string> GetUpdatedSeriesIdList(Stream stream)
-        {
-            using (var streamReader = new StreamReader(stream, Encoding.UTF8))
-            {
-                var element = XElement
-                    .Load(streamReader);
-                var time = element
-                    .Descendants("Time").FirstOrDefault()?.Value;
-
-                var idsList = element
-                    .Descendants("Series").Select(x => x.Value).ToList();
-
-                return new Tuple<List<string>, string>(idsList, time);
-            }
         }
 
         private int ExtractEpisodes(string xmlFile)

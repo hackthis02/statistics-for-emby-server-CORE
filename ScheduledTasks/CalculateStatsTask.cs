@@ -16,7 +16,6 @@ using MediaBrowser.Model.Tasks;
 using statistics;
 using statistics.Configuration;
 using statistics.Models.Configuration;
-using Statistics.Api;
 using Statistics.Helpers;
 using Statistics.ViewModel;
 
@@ -52,13 +51,13 @@ namespace Statistics.ScheduledTasks
         }
 
         private static PluginConfiguration PluginConfiguration => Plugin.Instance.Configuration;
-        public string Name => "Calculate statistics for all users";
+        string IScheduledTask.Name => "Calculate statistics for all users";
 
-        public string Key => "StatisticsCalculateStatsTask";
+        string IScheduledTask.Key => "StatisticsCalculateStatsTask";
 
-        public string Description => "Task that will calculate statistics needed for the statistics plugin for all users.";
+        string IScheduledTask.Description => "Task that will calculate statistics needed for the statistics plugin for all users.";
 
-        public string Category => "Statistics";
+        string IScheduledTask.Category => "Statistics";
 
         async Task IScheduledTask.Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
@@ -195,30 +194,16 @@ namespace Statistics.ScheduledTasks
 
             var calculator = new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _zipClient, _httpClient, _fileSystem, _serverApplicationPaths);
 
-            var time = PluginConfiguration.TotalEpisodeCounts.LastUpdateTime;
+
             bool callFailed;
-            //first run
-            if (string.IsNullOrEmpty(time))
+            try
             {
-                try
-                {
-                    callFailed = FirstTvdbConnection(calculator, seriesIdsInLibrary, cancellationToken);
-                }
-                catch
-                {
-                    callFailed = false;
-                }
+                callFailed = FirstTvdbConnection(calculator, seriesIdsInLibrary, cancellationToken);
             }
-            else
+            catch
             {
-                try
-                {
-                    callFailed = UpdateTvdbConnection(calculator, time, seriesIdsInLibrary, cancellationToken);
-                }
-                catch
-                {
-                    callFailed = false;
-                }
+                callFailed = false;
+                _logger.Error("Unable to get TVDB Data");
             }
 
             PluginConfiguration.TotalEpisodeCounts.LastUpdateTime = calculator.GetServerTime(cancellationToken);
@@ -233,47 +218,9 @@ namespace Statistics.ScheduledTasks
             return calculator.IsCalculationFailed;
         }
 
-        private bool UpdateTvdbConnection(ShowProgressCalculator calculator, string time, IEnumerable<string> seriesIdsInLibrary, CancellationToken cancellationToken)
+        IEnumerable<TaskTriggerInfo> IScheduledTask.GetDefaultTriggers()
         {
-            if (PluginConfiguration.TotalEpisodeCounts?.IdList == null)
-                return true;
-
-            var existingShows = PluginConfiguration.TotalEpisodeCounts.IdList.Select(x => x.ShowId).ToList();
-            var updatedList = calculator.GetShowsToUpdate(existingShows, time, cancellationToken).ToList();
-            if (calculator.IsCalculationFailed)
-                return true;
-
-            var newShows = seriesIdsInLibrary.Except(existingShows, StringComparer.OrdinalIgnoreCase).ToList();
-            var updatedTotals = calculator.CalculateTotalEpisodes(updatedList, cancellationToken);
-            if (calculator.IsCalculationFailed)
-                return true;
-
-            foreach (var showId in updatedList)
-            {
-                PluginConfiguration.TotalEpisodeCounts.IdList.FirstOrDefault<UpdateShowModel>(x => x.ShowId == showId).Count = updatedTotals.FirstOrDefault<UpdateShowModel>(x => x.ShowId == showId).Count;
-            }
-
-            var newTotals = calculator.CalculateTotalEpisodes(newShows, cancellationToken);
-            if (calculator.IsCalculationFailed)
-                return true;
-
-            foreach (var showId in newShows)
-            {
-                PluginConfiguration.TotalEpisodeCounts.IdList.Add(new UpdateShowModel(showId, newTotals.FirstOrDefault<UpdateShowModel>(x => x.ShowId == showId).Count));
-            }
-
-            return false;
-        }
-
-        public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
-        {
-            var trigger = new TaskTriggerInfo
-            {
-                Type = TaskTriggerInfo.TriggerDaily,
-                TimeOfDayTicks = TimeSpan.FromHours(0).Ticks
-            }; //12am
-
-            return new[] { trigger };
+            throw new NotImplementedException();
         }
     }
 }

@@ -11,6 +11,7 @@ using MediaBrowser.Model.IO;
 using statistics.Models.Configuration;
 using Statistics.Api;
 using statistics.Calculators;
+using MediaBrowser.Model.Logging;
 
 namespace Statistics.Helpers
 {
@@ -64,20 +65,6 @@ namespace Statistics.Helpers
             }
             
             return result;
-        }
-
-        public IEnumerable<string> GetShowsToUpdate(IEnumerable<string> showIds, string time, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var provider = new TheTvDbProvider(_zipClient, _httpClient, _fileSystem, _serverApplicationPaths);
-                return provider.GetSeriesIdsToUpdate(showIds, time, cancellationToken).Result;
-            }
-            catch (Exception)
-            {
-                IsCalculationFailed = true;
-                return null;
-            }
         }
 
         public List<ShowProgress> CalculateShowProgress(UpdateModel tvdbData)
