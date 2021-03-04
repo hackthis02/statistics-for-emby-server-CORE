@@ -143,6 +143,7 @@ namespace Statistics.ScheduledTasks
             using (var calculator = new Calculator(null, _userManager, _libraryManager, _userDataManager, _fileSystem, _logger))
             {
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
+                PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
                 PluginConfiguration.MostActiveUsers = calculator.CalculateMostActiveUsers(activeUsers);
                 PluginConfiguration.TotalUsers = calculator.CalculateTotalUsers();
 

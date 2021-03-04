@@ -16,6 +16,7 @@ namespace statistics.Configuration
         public List<UserStat> UserStats { get; set; }
 
         public ValueGroup MovieQualities { get; set; }
+        public ValueGroup MovieCodecs { get; set; }
         public ValueGroup MostActiveUsers { get; set; }
         public ValueGroup TotalUsers { get; set; }
 

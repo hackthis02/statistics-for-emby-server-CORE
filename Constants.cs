@@ -23,6 +23,7 @@
         internal const string TotalEpisodesWatched = "Total Episodes Watched";
         internal const string TotalShowsFinished = "Total Series Finished";
         internal const string MediaQualities = "Media Qualities";
+        internal const string MediaCodecs = "Media Codecs";
         internal const string LongestMovie = "Longest Movie Runtime";
         internal const string LongestShow = "Longest TV Series Runtime";
         internal const string BiggestMovie = "Largest Movie";

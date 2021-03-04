@@ -393,7 +393,7 @@ namespace Statistics.Helpers
                 Title = Constants.MostActiveUsers,
                 ValueLineOne = $"<table><tr><td></td><td>Days</td><td>Hours</td><td>Minutes</td></tr>{string.Join("", tempList)}</table>",
                 ValueLineTwo = "",
-                Size = "medium",
+                Size = "half",
                 ExtraInformation = Constants.HelpMostActiveUsers
             };
         }
@@ -471,7 +471,64 @@ namespace Statistics.Helpers
                 Title = Constants.MediaQualities,
                 ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", qualityList)}</table>",
                 ValueLineTwo = "",
-                Size = "medium"
+                Size = "half"
+            };
+        }
+
+        public ValueGroup CalculateMovieCodecs()
+        {
+            var movies = GetAllMovies();
+            var episodes = GetAllOwnedEpisodes();
+
+            var qualityList = new List<VideoCodecModel>();
+
+            foreach (var movie in movies.OrderBy(x => x.SortName))
+            {
+                var codec = movie.GetMediaStreams().FirstOrDefault()?.Codec ?? "Unknown".Trim();
+                var index = qualityList.FindIndex(p => p.Codec.Equals(codec));
+                _logger.Debug(movie.SortName + ' ' + codec);
+
+                if (index == -1)
+                {
+                    qualityList.Add(new VideoCodecModel
+                    {
+                        Codec = codec,
+                        Movies = 1,
+                        Episodes = 0
+                    }); 
+                }
+                else
+                {
+                    qualityList[index].Movies++;
+                }
+            }
+
+            foreach (var episode in episodes.OrderBy(x => x.SortName))
+            {
+                var codec = episode.GetMediaStreams().FirstOrDefault()?.Codec ?? "Unknown".Trim();
+                var index = qualityList.FindIndex(p => p.Codec.Equals(codec));
+                _logger.Debug(episode.SortName + ' ' + codec);
+                if (index == -1)
+                {
+                    qualityList.Add(new VideoCodecModel
+                    {
+                        Codec = codec,
+                        Movies = 0,
+                        Episodes = 1
+                    });
+                }
+                else
+                {
+                    qualityList[index].Episodes++;
+                }
+            }
+
+            return new ValueGroup
+            {
+                Title = Constants.MediaCodecs,
+                ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", qualityList)}</table>",
+                ValueLineTwo = "",
+                Size = "half"
             };
         }
 

@@ -104,7 +104,7 @@ namespace statistics.Calculators
                 IncludeItemTypes = new[] { typeof(Episode).Name },
                 Recursive = true,
                 Parent = show,
-                IsSpecialSeason = false,               
+                IsSpecialSeason = false,
                 IsVirtualItem = false
             };
 
@@ -173,7 +173,7 @@ namespace statistics.Calculators
                     EnableImages = false
                 }
             };
-            
+
             return LibraryManager.GetItemList(query).OfType<T>();
         }
 
@@ -208,14 +208,21 @@ namespace statistics.Calculators
 
         public void ClearCache()
         {
-            User = null;
-            _episodeCache = null;
-            _movieCache = null;
-            _boxsetCache = null;
-            _ownedEpisodeCache = null;
-            _viewedEpisodeCache = null;
-            _viewedMovieCache = null;
-            _seriesCache = null;
+            try
+            {
+                User = null;
+                _episodeCache = null;
+                _movieCache = null;
+                _boxsetCache = null;
+                _ownedEpisodeCache = null;
+                _viewedEpisodeCache = null;
+                _viewedMovieCache = null;
+                _seriesCache = null;
+            }
+            catch (Exception e)
+            {
+                throw new Exception(e.ToString());
+            }
         }
     }
 }
