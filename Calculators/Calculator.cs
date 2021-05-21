@@ -936,7 +936,7 @@ namespace Statistics.Helpers
                             ? "Today"
                             : $"{CheckForPlural("day", numberOfTotalDays.Days, "", "", false)} ago");
 
-                    valueLineTwo = CheckMaxLength($"{youngest.Series?.Name} S{youngest.AiredSeasonNumber} E{youngest.IndexNumber} ");
+                    valueLineTwo = CheckMaxLength($"{youngest.Series?.Name} S{youngest.Season.IndexNumber} E{youngest.IndexNumber} ");
                     id = youngest.Id.ToString();
                 }
             }
