@@ -295,8 +295,6 @@
                                 $('#GoToShowProgress', page).css("display", "none");
                                 Dashboard.hideLoadingMsg();
                             } else {
-                                MainPage.tvdbCallFailed = config.IsTheTvdbCallFailed;
-
                                 $("#statsIntro", page).append('<b>' + config.LastUpdated + '</b>');
 
                                 $("#generalStat", page).append(MainPage.createStat(config.MovieQualities));
@@ -356,15 +354,7 @@
 
                     $('#GoToShowProgress', page).on('click',
                         function () {
-                            if (MainPage.tvdbCallFailed) {
-                                Dashboard.alert({
-                                    message:
-                                    'Last time the background calculation task ran it got an error from the TVDB API so no calculations could be made for the show progress. This is mostly because the TVDB server gave a 500 response. <br/><br/>You have to run the task again, if the problem persists wait a bit longer before running the task again.'
-                                });
-                            } else {
-                                var href = Dashboard.getConfigurationPageUrl("StatisticsShowOverview");
-                                Dashboard.navigate(href);
-                            }
+                            Dashboard.navigate(Dashboard.getConfigurationPageUrl("StatisticsShowOverview"));
                         });
 
                     MainPage.loadStats(page);

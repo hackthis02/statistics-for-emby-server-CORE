@@ -1,103 +1,88 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Linq;
-using MediaBrowser.Common.Net;
 using MediaBrowser.Controller;
 using MediaBrowser.Model.IO;
+using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Serialization;
 
 namespace Statistics.Api
 {
+    public class TVDBEpisode
+    {
+        public int id { get; set; }
+        public int seriesId { get; set; }
+        public string name { get; set; }
+        public int runtime { get; set; }
+        public string overview { get; set; }
+        public string image { get; set; }
+        public int imageType { get; set; }
+        public int isMovie { get; set; }
+        public int number { get; set; }
+        public int seasonNumber { get; set; }
+        public string lastUpdated { get; set; }
+        public string aired { get; set; }
+        public string finaleType { get; set; }
+        public int? airsAfterSeason { get; set; }
+        public int? airsBeforeSeason { get; set; }
+        public int? airsBeforeEpisode { get; set; }
+    }
+
+    public class TVDBjson
+    {
+        public List<object> characters { get; set; }
+        public List<TVDBEpisode> episodes { get; set; }
+    }
+
     public class TheTvDbProvider
     {
-        private const string SeriesGetZip = "https://www.thetvdb.com/api/{0}/series/{1}/all/{2}.zip";
-        private const string ServerTimeUrl = "https://thetvdb.com/api/Updates.php?type=none";
-        private const string ApiKey = "82a72ddf3d6a98d04c6b9a6ba94d84de";
         private readonly IFileSystem _fileSystem;
-        private readonly IHttpClient _httpClient;
         private readonly IServerApplicationPaths _serverApplicationPaths;
-        private readonly IZipClient _zipClient;
-
-        public TheTvDbProvider(IZipClient zipClient, IHttpClient httpClient, IFileSystem fileSystem, IServerApplicationPaths serverApplicationPaths)
+        private readonly ILogger _logger;
+        private readonly IJsonSerializer _jsonserializer;
+        public TheTvDbProvider(IFileSystem fileSystem, IServerApplicationPaths serverApplicationPaths, ILogger logger, IJsonSerializer jsonserializer)
         {
-            _zipClient = zipClient;
-            _httpClient = httpClient;
             _fileSystem = fileSystem;
             _serverApplicationPaths = serverApplicationPaths;
+            _logger = logger;
+            _jsonserializer = jsonserializer;
         }
 
-        public async Task<string> GetServerTime(CancellationToken cancellationToken)
+
+        public async Task<int> CalculateEpisodeCount(string seriesId, CancellationToken cancellationToken)
         {
-            using (var stream = await _httpClient.Get(new HttpRequestOptions
+            try
             {
-                Url = ServerTimeUrl,
-                CancellationToken = cancellationToken,
-                EnableHttpCompression = true
-            }).ConfigureAwait(false))
-            {
-                return GetUpdateTime(stream);
-            }
-        }
-
-        public async Task<int> CalculateEpisodeCount(string seriesId, string preferredMetadataLanguage, CancellationToken cancellationToken)
-        {
-            var fullPath = _serverApplicationPaths.PluginsPath + "\\\\Statistics";
-
-            _fileSystem.CreateDirectory(fullPath);
-
-            var url = string.Format(SeriesGetZip, ApiKey, seriesId, NormalizeLanguage(preferredMetadataLanguage));
-
-            using (var zipStream = await _httpClient.Get(new HttpRequestOptions
-            {
-                Url = url,
-                CancellationToken = cancellationToken
-            }).ConfigureAwait(false))
-            {
-                DeleteXmlFiles(fullPath);
-
-                using (var ms = new MemoryStream())
+                return await Task.Run(() =>
                 {
-                    await zipStream.CopyToAsync(ms).ConfigureAwait(false);
+                    var downloadLangaugeXmlFile = Path.Combine(_serverApplicationPaths.CachePath, "tvdb", seriesId, "episodes-official.json");
+                    _logger.Debug(downloadLangaugeXmlFile);
 
-                    ms.Position = 0;
-                    _zipClient.ExtractAllFromZip(ms, fullPath, true);
-                }
+                    return ExtractEpisodes(downloadLangaugeXmlFile);
+                }, cancellationToken);
             }
-
-            var downloadLangaugeXmlFile = Path.Combine(fullPath, NormalizeLanguage(preferredMetadataLanguage) + ".xml");
-
-            var result = ExtractEpisodes(downloadLangaugeXmlFile);
-            _fileSystem.DeleteDirectory(fullPath, true);
-            return result;
-        }
-
-        private int ExtractEpisodes(string xmlFile)
-        {
-            using (
-                var element = _fileSystem.GetFileStream(xmlFile, FileOpenMode.Open, FileAccessMode.Read, FileShareMode.Read))
+            catch (Exception x)
             {
-                var el = XElement.Load(element);
-
-                return el.Descendants("Episode")
-                    .Where(
-                        x =>
-                            DateTime.Now.Date >=
-                            Convert.ToDateTime(StringToDateTime(x.Descendants("FirstAired").FirstOrDefault()?.Value)))
-                    .Sum(x => x.Descendants("SeasonNumber").Count(y => y.Value != "0"));
+                _logger.ErrorException(x.Message, x);
+                return 0;
             }
         }
 
-        private string GetUpdateTime(Stream response)
+        private int ExtractEpisodes(string jsonFile)
         {
-            using (var streamReader = new StreamReader(response, Encoding.UTF8))
+            TVDBjson temp = _jsonserializer.DeserializeFromFile<TVDBjson>(jsonFile);
+            var count = 0;
+
+            foreach (var e in temp.episodes)
             {
-                return XElement
-                    .Load(streamReader)
-                    .Descendants("Time").FirstOrDefault()?.Value;
+                _logger.Debug(e.name);
+                if ((e.aired != null) && (DateTime.Now.Date >= StringToDateTime(e.aired) && e.seasonNumber != 0))
+                        count++;
             }
+
+            return count;
         }
 
         private DateTime StringToDateTime(string date)
@@ -119,19 +104,6 @@ namespace Statistics.Api
                 return language;
 
             return language.Split('-')[0].ToLower();
-        }
-
-        private void DeleteXmlFiles(string path)
-        {
-            try
-            {
-                foreach (var file in _fileSystem.GetFilePaths(path, true)
-                    .ToList())
-                    _fileSystem.DeleteFile(file);
-            }
-            catch (IOException)
-            {
-            }
         }
     }
 }

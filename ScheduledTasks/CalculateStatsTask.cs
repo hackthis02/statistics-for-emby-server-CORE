@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common;
-using MediaBrowser.Common.Net;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
@@ -12,6 +11,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Tasks;
 using statistics;
 using statistics.Configuration;
@@ -21,30 +21,29 @@ using Statistics.ViewModel;
 
 namespace Statistics.ScheduledTasks
 {
-    public class CalculateStatsTask : IScheduledTask 
+    public class CalculateStatsTask : IScheduledTask
     {
         private readonly IFileSystem _fileSystem;
-        private readonly IHttpClient _httpClient;
         private readonly ILibraryManager _libraryManager;
         private readonly ILogger _logger;
         private readonly IServerApplicationPaths _serverApplicationPaths;
         private readonly IUserDataManager _userDataManager;
         private readonly IUserManager _userManager;
-        private readonly IZipClient _zipClient;
         private IApplicationHost _appHost;
+        private readonly IJsonSerializer _jsonSerializer;
+
 
         public CalculateStatsTask(ILogManager logger,
             IUserManager userManager,
             IUserDataManager userDataManager,
-            ILibraryManager libraryManager, IZipClient zipClient, IHttpClient httpClient, IFileSystem fileSystem,
+            ILibraryManager libraryManager, IFileSystem fileSystem, IJsonSerializer jsonSerializer,
             IServerApplicationPaths serverApplicationPaths, IApplicationHost appHost)
         {
             _logger = logger.GetLogger("Statistics");
             _libraryManager = libraryManager;
             _userManager = userManager;
             _userDataManager = userDataManager;
-            _zipClient = zipClient;
-            _httpClient = httpClient;
+            _jsonSerializer = jsonSerializer;
             _fileSystem = fileSystem;
             _serverApplicationPaths = serverApplicationPaths;
             _appHost = appHost;
@@ -129,7 +128,7 @@ namespace Statistics.ScheduledTasks
                                 calculator.CalculateLastSeenShows()
                             },
                             ShowProgresses =
-                                new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _zipClient, _httpClient, _fileSystem, _serverApplicationPaths, user)
+                                new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _serverApplicationPaths, _logger, _jsonSerializer, user)
                                     .CalculateShowProgress(PluginConfiguration.TotalEpisodeCounts)
                         };
                         PluginConfiguration.UserStats.Add(stat);
@@ -193,22 +192,11 @@ namespace Statistics.ScheduledTasks
                 .Where(i => !string.IsNullOrEmpty(i.GetProviderId(MetadataProviders.Tvdb)))
                 .Select(i => i.GetProviderId(MetadataProviders.Tvdb));
 
-            var calculator = new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _zipClient, _httpClient, _fileSystem, _serverApplicationPaths);
 
+            var calculator = new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _serverApplicationPaths, _logger, _jsonSerializer);
+            FirstTvdbConnection(calculator, seriesIdsInLibrary, cancellationToken);
 
-            bool callFailed;
-            try
-            {
-                callFailed = FirstTvdbConnection(calculator, seriesIdsInLibrary, cancellationToken);
-            }
-            catch
-            {
-                callFailed = false;
-                _logger.Error("Unable to get TVDB Data");
-            }
-
-            PluginConfiguration.TotalEpisodeCounts.LastUpdateTime = calculator.GetServerTime(cancellationToken);
-            PluginConfiguration.IsTheTvdbCallFailed = callFailed;
+            PluginConfiguration.TotalEpisodeCounts.LastUpdateTime = DateTime.Now.ToString("g");
             Plugin.Instance.SaveConfiguration();
         }
 

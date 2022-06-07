@@ -6,7 +6,6 @@ namespace Statistics.Api
     {
         public string LastUpdateTime { get; set; }
         public List<UpdateShowModel> IdList { get; set; }
-
         public UpdateModel()
         {
             IdList = new List<UpdateShowModel>();
@@ -17,11 +16,7 @@ namespace Statistics.Api
     {
         public string ShowId { get; set; }
         public int Count { get; set; }
-
-        public UpdateShowModel()
-        {
-            
-        }
+        public UpdateShowModel(){}
         public UpdateShowModel(string showId, int count)
         {
             ShowId = showId;

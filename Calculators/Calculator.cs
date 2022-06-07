@@ -486,7 +486,7 @@ namespace Statistics.Helpers
             {
                 var codec = movie.GetMediaStreams().FirstOrDefault()?.Codec ?? "Unknown".Trim();
                 var index = qualityList.FindIndex(p => p.Codec.Equals(codec));
-                _logger.Debug(movie.SortName + ' ' + codec);
+                //_logger.Debug(movie.SortName + ": " + codec);
 
                 if (index == -1)
                 {
@@ -507,7 +507,7 @@ namespace Statistics.Helpers
             {
                 var codec = episode.GetMediaStreams().FirstOrDefault()?.Codec ?? "Unknown".Trim();
                 var index = qualityList.FindIndex(p => p.Codec.Equals(codec));
-                _logger.Debug(episode.SortName + ' ' + codec);
+                //_logger.Debug(episode.Series.SortName + ": " + episode.SortName + ": " + codec);
                 if (index == -1)
                 {
                     qualityList.Add(new VideoCodecModel
@@ -787,8 +787,7 @@ namespace Statistics.Helpers
                         maxTime = showSize;
                         maxShow = show;
                     }
-                    catch(Exception e)
-                    { }
+                    catch(Exception) { }
 
                 }
 

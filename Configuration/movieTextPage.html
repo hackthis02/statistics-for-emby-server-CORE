@@ -17,16 +17,16 @@
                 <div><table id="unk"></table></div>
                 <h2 id="dvdTitle"></h2>
                 <div><table id="dvd"></table></div>
+                <h2 id="Q400Title"></h2>
+                <div><table id="Q400"></table></div>
                 <h2 id="Q700Title"></h2>
                 <div><table id="Q700"></table></div>
-                <h2 id="Q1260Title"></h2>
-                <div><table id="Q1260"></table></div>
-                <h2 id="Q1900Title"></h2>
-                <div><table id="Q1900"></table></div>
-                <h2 id="Q2500Title"></h2>
-                <div><table id="Q2500"></table></div>
-                <h2 id="Q3800Title"></h2>
-                <div><table id="Q3800"></table></div>
+                <h2 id="Q1000Title"></h2>
+                <div><table id="Q1000"></table></div>
+                <h2 id="Q1400Title"></h2>
+                <div><table id="Q1400"></table></div>
+                <h2 id="Q2100Title"></h2>
+                <div><table id="Q2100"></table></div>
             </div>
         </div>
         <style>
@@ -44,8 +44,8 @@
             (function () {
                 var MoviesListPage = {
                     pluginId: '291d866f-baad-464a-aed6-a4a8b95a8fd7',
-                    sections: ["#unk", "#dvd", "#Q700", "#Q1260", "#Q1900", "#Q2500", "#Q3800"],
-                    res: ["Unknown", "DVD", "480P", "720P", "1080P", "1440P", "4K"],
+                    sections: ["#unk", "#dvd", "#Q400", "#Q700", "#Q1000", "#Q1400", "#Q2100"],
+                    res: ["Unknown", ">480P", "480P", "720P", "1080P", "1440P", "4K"],
                     loadStats: function (page) {
                         Dashboard.showLoadingMsg();
                         ApiClient.getPluginConfiguration(MoviesListPage.pluginId).then(function (config) {

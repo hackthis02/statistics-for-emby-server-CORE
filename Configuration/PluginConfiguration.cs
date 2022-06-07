@@ -49,6 +49,5 @@ namespace statistics.Configuration
         public List<MovieQuality> MovieQualityItems { get; set; }
 
         public UpdateModel TotalEpisodeCounts { get; set; }
-        public bool IsTheTvdbCallFailed { get; set; }
     }
 }
