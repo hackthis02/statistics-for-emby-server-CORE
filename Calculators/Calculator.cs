@@ -11,7 +11,6 @@ using statistics.Calculators;
 using statistics.Models;
 using statistics.Models.Configuration;
 using Statistics.Api;
-using Statistics.Enum;
 using Statistics.Models;
 using Statistics.ViewModel;
 
@@ -407,64 +406,49 @@ namespace Statistics.Helpers
             var movies = GetAllMovies();
             var episodes = GetAllOwnedEpisodes();
 
-            var moWidths = movies
-                    .Select(x => x.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video))
-                    .Select(x => x != null ? x.Width : 0)
-                    .ToList();
-            var epWidths = episodes
-                    .Select(x => x.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video))
-                    .Select(x => x != null ? x.Width : 0)
-                    .ToList();
+            var qualityList = new List<VideoQualityModel>();
 
-            var ceilings = new[] { 3800, 2500, 1900, 1260, 700, 10 };
-            var moGroupings = moWidths.GroupBy(item => ceilings.FirstOrDefault(ceiling => ceiling < item)).ToList();
-            var epGroupings = epWidths.GroupBy(item => ceilings.FirstOrDefault(ceiling => ceiling < item)).ToList();
-
-            var qualityList = new List<VideoQualityModel>
+            foreach (var movie in movies.OrderBy(x => x.SortName))
             {
-                new VideoQualityModel
+                var quality = movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
+                var index = qualityList.FindIndex(p => p.Quality.Equals(quality));
+                //_logger.Debug(movie.SortName + ": " + quality);
+
+                if (index == -1)
                 {
-                    Quality = VideoQuality.UNKNOWN,
-                    Movies = moGroupings.FirstOrDefault(x => x.Key == 0)?.Count() ?? 0,
-                    Episodes = epGroupings.FirstOrDefault(x => x.Key == 0)?.Count() ?? 0
-                },
-                new VideoQualityModel
-                {
-                    Quality = VideoQuality.DVD,
-                    Movies = moGroupings.FirstOrDefault(x => x.Key == 10)?.Count() ?? 0,
-                    Episodes = epGroupings.FirstOrDefault(x => x.Key == 10)?.Count() ?? 0
-                },
-                new VideoQualityModel
-                {
-                    Quality = VideoQuality.Q700,
-                    Movies = moGroupings.FirstOrDefault(x => x.Key == 700)?.Count() ?? 0,
-                    Episodes = epGroupings.FirstOrDefault(x => x.Key == 700)?.Count() ?? 0
-                },
-                new VideoQualityModel
-                {
-                    Quality = VideoQuality.Q1260,
-                    Movies = moGroupings.FirstOrDefault(x => x.Key == 1260)?.Count() ?? 0,
-                    Episodes = epGroupings.FirstOrDefault(x => x.Key == 1260)?.Count() ?? 0
-                },
-                new VideoQualityModel
-                {
-                    Quality = VideoQuality.Q1900,
-                    Movies = moGroupings.FirstOrDefault(x => x.Key == 1900)?.Count() ?? 0,
-                    Episodes = epGroupings.FirstOrDefault(x => x.Key == 1900)?.Count() ?? 0
-                },
-                new VideoQualityModel
-                {
-                    Quality = VideoQuality.Q2500,
-                    Movies = moGroupings.FirstOrDefault(x => x.Key == 2500)?.Count() ?? 0,
-                    Episodes = epGroupings.FirstOrDefault(x => x.Key == 2500)?.Count() ?? 0
-                },
-                new VideoQualityModel
-                {
-                    Quality = VideoQuality.Q3800,
-                    Movies = moGroupings.FirstOrDefault(x => x.Key == 3800)?.Count() ?? 0,
-                    Episodes = epGroupings.FirstOrDefault(x => x.Key == 3800)?.Count() ?? 0
+                    qualityList.Add(new VideoQualityModel
+                    {
+                        Quality = quality,
+                        Movies = 1,
+                        Episodes = 0
+                    });
                 }
-            };
+                else
+                {
+                    qualityList[index].Movies++;
+                }
+            }
+
+            foreach (var episode in episodes.OrderBy(x => x.SortName))
+            {
+                var quality = episode.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
+                var index = qualityList.FindIndex(p => p.Quality.Equals(quality));
+                //_logger.Debug(episode.Series.SortName + ": " + episode.SortName + ": " + quality);
+
+                if (index == -1)
+                {
+                    qualityList.Add(new VideoQualityModel
+                    {
+                        Quality = quality,
+                        Movies = 0,
+                        Episodes = 1
+                    });
+                }
+                else
+                {
+                    qualityList[index].Episodes++;
+                }
+            }
 
             return new ValueGroup
             {
@@ -532,54 +516,39 @@ namespace Statistics.Helpers
             };
         }
 
-        public List<MovieQuality> CalculateMovieQualityList()
+        public MovieQualityObj CalculateMovieQualityList()
         {
             var movies = GetAllMovies();
-            var list = new List<MovieQuality>
-            {
+            var list = new List<MovieQuality>();
 
-                new MovieQuality { Quality = VideoQuality.UNKNOWN, Movies = new List<statistics.Models.Movie>() },
-                new MovieQuality { Quality = VideoQuality.DVD, Movies = new List<statistics.Models.Movie>() },
-                new MovieQuality { Quality = VideoQuality.Q700, Movies = new List<statistics.Models.Movie>() },
-                new MovieQuality { Quality = VideoQuality.Q1260, Movies = new List<statistics.Models.Movie>() },
-                new MovieQuality { Quality = VideoQuality.Q1900, Movies = new List<statistics.Models.Movie>() },
-                new MovieQuality { Quality = VideoQuality.Q2500, Movies = new List<statistics.Models.Movie>() },
-                new MovieQuality { Quality = VideoQuality.Q3800, Movies = new List<statistics.Models.Movie>() }
-            };
-            var listDVD = new List<statistics.Models.Movie>();
             foreach (var movie in movies.OrderBy(x => x.SortName))
             {
-                if ((movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.Width ?? 0) == 0)
+                var quality = movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
+                var index = list.FindIndex(p => p.Title.Equals(quality));
+                //_logger.Debug(movie.Name + ' ' + quality + ' ' + index);
+
+                if (index == -1)
                 {
-                    list[0].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
+                    var temp = new List<statistics.Models.Movie>();
+                    temp.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
+
+                    list.Add(new MovieQuality
+                    {
+                        Title = quality,
+                        Movies = temp
+                    });
                 }
-                else if (movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.Width < 700)
+                else
                 {
-                    list[1].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                }
-                else if (movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.Width < 1260)
-                {
-                    list[2].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                }
-                else if (movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.Width < 1900)
-                {
-                    list[3].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                }
-                else if (movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.Width < 2500)
-                {
-                    list[4].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                }
-                else if (movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.Width < 3800)
-                {
-                    list[5].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                }
-                else if (movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.Width >= 3800)
-                {
-                    list[6].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
+                    list[index].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
                 }
             }
-
-            return list;
+            var mobj = new MovieQualityObj()
+            {
+                Count = list.Count(),
+                Movies = list
+            };
+            return mobj;
         }
         #endregion
 

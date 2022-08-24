@@ -1,6 +1,4 @@
-﻿using Statistics.Enum;
-
-namespace Statistics.Models
+﻿namespace Statistics.Models
 {
     public class VideoCodecModel
     {

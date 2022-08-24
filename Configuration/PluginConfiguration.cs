@@ -46,7 +46,7 @@ namespace statistics.Configuration
         public string Version { get; set; }
         public string ServerId { get; set; }
 
-        public List<MovieQuality> MovieQualityItems { get; set; }
+        public MovieQualityObj MovieQualityItems { get; set; }
 
         public UpdateModel TotalEpisodeCounts { get; set; }
     }

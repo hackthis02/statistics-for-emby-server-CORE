@@ -12,21 +12,7 @@
                 <div style="max-width: 900px;">
                     <button is="emby-button" type="button" class="raised button-cancel block emby-button" onclick="Emby.Page.back();">Go back</button>
                 </div>
-
-                <h2 id="unkTitle"></h2>
-                <div id="unk"></div>
-                <h2 id="dvdTitle"></h2>
-                <div id="dvd"></div>
-                <h2 id="Q400Title"></h2>
-                <div id="Q400"></div>
-                <h2 id="Q700Title"></h2>
-                <div id="Q700"></div>
-                <h2 id="Q1000Title"></h2>
-                <div id="Q1000"></div>
-                <h2 id="Q1400Title"></h2>
-                <div id="Q1400"></div>
-                <h2 id="Q2100Title"></h2>
-                <div id="Q2100"></div>
+                <div id="pagestart"></div>
             </div>
         </div>
         <style>
@@ -44,20 +30,28 @@
             (function () {
                 var MoviesPage = {
                     pluginId: '291d866f-baad-464a-aed6-a4a8b95a8fd7',
-                    sections: ["#unk", "#dvd", "#Q400", "#Q700", "#Q1000", "#Q1400", "#Q2100"],
-                    res: ["Unknown", ">480p", "480P", "720P", "1080P", "1440P", "4K"],
                     loadStats: function (page) {
                         Dashboard.showLoadingMsg();
 
                         ApiClient.getPluginConfiguration(MoviesPage.pluginId).then(function (config) {
-                            $.each(MoviesPage.sections, function (i, section) {
-                                $(section + "Title").html(MoviesPage.res[i] + " (" + config.MovieQualityItems[i].Movies.length + ")");
-
-                                $(section, page).html('');
-                                $.each(config.MovieQualityItems[i].Movies, function (j, v) {$(section, page)
-                                    .append('<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + config.ServerId + '"><img src="/Items/' + v.Id + '/Images/Primary" height="200px" alt="' + v.Name + '" /></a>');
+                            for (let h = 0, len = config.MovieQualityItems.Count; h < len; h++)
+                            {
+                                var innertext = ''
+                                $.each(config.MovieQualityItems.Movies[h].Movies, function (j, v)
+                                {
+                                    innertext += '<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + config.ServerId + '"><img src="/Items/' + v.Id + '/Images/Primary" height="200px" alt="' + v.Name + '" /></a>';
                                 });
-                            })
+
+                                $("#pagestart")
+                                    .append('<h2 id = "' + config.MovieQualityItems.Movies[h].Title + 'Title">' + config.MovieQualityItems.Movies[h].Title + '</h2><div id="' + config.MovieQualityItems.Movies[h].Title + '">' + innertext + '</div>');
+                                //add name of section
+                                //$(config.MovieQualityItems.Movies[h].Title + "Title").html(config.MovieQualityItems.Movies[h].Title);
+
+                                //$(section, page).html('');
+                                //$.each(config.MovieQualityItems.Movies[h].Movies, function (j, v) {$(config.MovieQualityItems.Movies[h].Title, page)
+                                //    .append('<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + config.ServerId + '"><img src="/Items/' + v.Id + '/Images/Primary" height="200px" alt="' + v.Name + '" /></a>');
+                                //});
+                            }
                             Dashboard.hideLoadingMsg();
                         });
                     }

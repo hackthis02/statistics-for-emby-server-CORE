@@ -12,21 +12,7 @@
                 <div style="max-width: 900px;">
                     <button is="emby-button" type="button" class="raised button-cancel block emby-button" onclick="Emby.Page.back();">Go back</button>
                 </div>
-
-                <h2 id="unkTitle"></h2>
-                <div><table id="unk"></table></div>
-                <h2 id="dvdTitle"></h2>
-                <div><table id="dvd"></table></div>
-                <h2 id="Q400Title"></h2>
-                <div><table id="Q400"></table></div>
-                <h2 id="Q700Title"></h2>
-                <div><table id="Q700"></table></div>
-                <h2 id="Q1000Title"></h2>
-                <div><table id="Q1000"></table></div>
-                <h2 id="Q1400Title"></h2>
-                <div><table id="Q1400"></table></div>
-                <h2 id="Q2100Title"></h2>
-                <div><table id="Q2100"></table></div>
+                <div id="pagestart"></div>
             </div>
         </div>
         <style>
@@ -35,42 +21,47 @@
             }
         </style>
 
-        
+
         <script type="text/javascript">
-            function showInfo(text, title) {
+            function showInfo(text, title)
+            {
                 Dashboard.alert({ message: text, title: title });
             }
 
-            (function () {
+            (function ()
+            {
                 var MoviesListPage = {
                     pluginId: '291d866f-baad-464a-aed6-a4a8b95a8fd7',
-                    sections: ["#unk", "#dvd", "#Q400", "#Q700", "#Q1000", "#Q1400", "#Q2100"],
-                    res: ["Unknown", ">480P", "480P", "720P", "1080P", "1440P", "4K"],
-                    loadStats: function (page) {
+                    loadStats: function (page)
+                    {
                         Dashboard.showLoadingMsg();
-                        ApiClient.getPluginConfiguration(MoviesListPage.pluginId).then(function (config) {
-                            $.each(MoviesListPage.sections, function (i, section) {
-                                $(section + "Title").html(MoviesListPage.res[i] + " (" + config.MovieQualityItems[i].Movies.length + ")");
+                        ApiClient.getPluginConfiguration(MoviesListPage.pluginId).then(function (config)
+                        {
+                            for (let h = 0, len = config.MovieQualityItems.Count; h < len; h++)
+                            {
+                                var innertext = ''
+                                $.each(config.MovieQualityItems.Movies[h].Movies, function (j, v)
+                                {
+                                    innertext += MoviesListPage.makeTable(v, config.ServerId);
+                                });
 
-
-                                $(section, page).html('')
-                                $.each(config.MovieQualityItems[i].Movies, function (j, v) { $(section, page)
-                                    .append(MoviesListPage.makeTable(v, config.ServerId)); });
-
-                            })
-
+                                $("#pagestart")
+                                    .append('<h2 id = "' + config.MovieQualityItems.Movies[h].Title + 'Title">' + config.MovieQualityItems.Movies[h].Title + '</h2><div><table id="' + config.MovieQualityItems.Movies[h].Title + '">' + innertext + '</table></div>');
+                            }
                             Dashboard.hideLoadingMsg();
                         });
                     },
-                    makeTable: function (movie, ServerId) {
+                    makeTable: function (movie, ServerId)
+                    {
                         var html = '<tr>';
-                        html += '<td><a is="emby-linkbutton" href="/item?id=' + movie.Id + '&serverId=' + ServerId + '">' +  movie.Name + '</a></td>';
+                        html += '<td><a is="emby-linkbutton" href="/item?id=' + movie.Id + '&serverId=' + ServerId + '">' + movie.Name + '</a></td>';
                         html += '<td>' + movie.Year + '</td>';
                         return html + '</tr>';
                     }
                 };
 
-                $('.MoviesListPage').on('pageshow', function (event) {
+                $('.MoviesListPage').on('pageshow', function (event)
+                {
                     MoviesListPage.loadStats(this);
                 });
             })();
