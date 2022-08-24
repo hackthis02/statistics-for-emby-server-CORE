@@ -252,35 +252,39 @@
                         return html;
                     },
                     createStatWithPoster: function (v, i) {
-                        var html = '<div class="col ' +
-                            v.Size +
-                            '"><div class="statCard"><div class="statCard-content">';
+                        if (v) {
+                            var html = '<div class="col ' +
+                                v.Size +
+                                '"><div class="statCard"><div class="statCard-content">';
 
-                        if (v.ExtraInformation !== undefined)
-                            html += "<div class=\"infoBlock\" onclick=\"showInfo('" +
-                                v.ExtraInformation +
-                                "', '" +
+                            if (v.ExtraInformation !== undefined)
+                                html += "<div class=\"infoBlock\" onclick=\"showInfo('" +
+                                    v.ExtraInformation +
+                                    "', '" +
+                                    v.Title +
+                                    "');\"><i class=\"md-icon\">info_outline</i></div>";
+
+                            if (v.Id !== undefined) {
+                                html += '<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + i + '"><img src="/Items/' + v.Id + '/Images/Primary" height="105px"></a>'
+                                html += '<div>'
+                            }
+
+                            html += '<div class="statCard-stats-title-left">' +
                                 v.Title +
-                                "');\"><i class=\"md-icon\">info_outline</i></div>";
+                                '</div><div class="statCard-stats-number">' +
+                                v.ValueLineOne +
+                                '</div><div class="statCard-stats-number">' +
+                                v.ValueLineTwo +
+                                '</div></div></div></div>';
 
-                        if (v.Id !== undefined) {
-                            html += '<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + i + '"><img src="/Items/' + v.Id + '/Images/Primary" height="105px"></a>'
-                            html += '<div>'
+                            if (v.Id !== undefined) {
+                                html += '</div>';
+                            }
+
+                            return html;
+                        } else {
+                            return "";
                         }
-
-                        html += '<div class="statCard-stats-title-left">' +
-                            v.Title +
-                            '</div><div class="statCard-stats-number">' +
-                            v.ValueLineOne +
-                            '</div><div class="statCard-stats-number">' +
-                            v.ValueLineTwo +
-                            '</div></div></div></div>';
-
-                        if (v.Id !== undefined) {
-                            html += '</div>';
-                        }
-
-                        return html;
                     },
                     loadStats: function (page) {
                         Dashboard.showLoadingMsg();
