@@ -7,6 +7,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Querying;
 using statistics.Calculators;
 using statistics.Models;
 using statistics.Models.Configuration;
@@ -19,22 +20,22 @@ namespace Statistics.Helpers
     public class Calculator : BaseCalculator
     {
         private IFileSystem _fileSystem;
-		private ILogger _logger;
+        private ILogger _logger;
         public Calculator(User user, IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager, IFileSystem fileSystem, ILogger logger)
             : base(userManager, libraryManager, userDataManager)
         {
             User = user;
             _fileSystem = fileSystem;
-			_logger = logger;
+            _logger = logger;
 
-		}
+        }
 
         #region TopYears
 
         public ValueGroup CalculateFavoriteYears()
         {
             var movieList = User == null
-                ? GetAllMovies().Where(m => UserManager.Users.Any(m.IsPlayed))
+                ? GetAllMovies().Where(m => GetAllUser().Any(m.IsPlayed))
                 : GetAllMovies().Where(m => m.IsPlayed(User)).ToList();
             var list = movieList.Select(m => m.ProductionYear ?? 0).Distinct().ToList();
             var source = new Dictionary<int, int>();
@@ -66,7 +67,7 @@ namespace Statistics.Helpers
                     m =>
                         UserDataManager.GetUserData(
                                 User ??
-                                UserManager.Users.FirstOrDefault<User>(u => m.IsPlayed(u) && UserDataManager.GetUserData(u, m).LastPlayedDate.HasValue), m)
+                                GetAllUser().FirstOrDefault<User>(u => m.IsPlayed(u) && UserDataManager.GetUserData(u, m).LastPlayedDate.HasValue), m)
                             .LastPlayedDate)
                 .Take(8).ToList();
 
@@ -94,7 +95,7 @@ namespace Statistics.Helpers
                     m =>
                         UserDataManager.GetUserData(
                                 User ??
-                                UserManager.Users.FirstOrDefault<User>(u => m.IsPlayed(u) && UserDataManager.GetUserData(u, m).LastPlayedDate.HasValue), m)
+                                GetAllUser().FirstOrDefault<User>(u => m.IsPlayed(u) && UserDataManager.GetUserData(u, m).LastPlayedDate.HasValue), m)
                             .LastPlayedDate)
                 .Take(8).ToList();
 
@@ -169,7 +170,7 @@ namespace Statistics.Helpers
         {
             var runTime = new RunTime();
             var movies = User == null
-                ? GetAllMovies().Where(m => UserManager.Users.Any(m.IsPlayed) || !onlyPlayed)
+                ? GetAllMovies().Where(m => GetAllUser().Any(m.IsPlayed) || !onlyPlayed)
                 : GetAllMovies().Where(m => (m.IsPlayed(User) || !onlyPlayed) && m.IsVisible(User));
             foreach (var movie in movies)
             {
@@ -189,7 +190,7 @@ namespace Statistics.Helpers
         {
             var runTime = new RunTime();
             var shows = User == null
-                ? GetAllOwnedEpisodes().Where(m => UserManager.Users.Any(m.IsPlayed) || !onlyPlayed)
+                ? GetAllOwnedEpisodes().Where(m => GetAllUser().Any(m.IsPlayed) || !onlyPlayed)
                 : GetAllOwnedEpisodes().Where(m => (m.IsPlayed(User) || !onlyPlayed) && m.IsVisible(User));
             foreach (var show in shows)
             {
@@ -209,7 +210,7 @@ namespace Statistics.Helpers
         {
             var runTime = new RunTime();
             var items = User == null
-                ? GetAllBaseItems().Where(m => UserManager.Users.Any(m.IsPlayed) || !onlyPlayed)
+                ? GetAllBaseItems().Where(m => GetAllUser().Any(m.IsPlayed) || !onlyPlayed)
                 : GetAllBaseItems().Where(m => (m.IsPlayed(User) || !onlyPlayed) && m.IsVisible(User));
             foreach (var item in items)
             {
@@ -410,9 +411,9 @@ namespace Statistics.Helpers
 
             foreach (var movie in movies.OrderBy(x => x.SortName))
             {
-                var quality = movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
-                var index = qualityList.FindIndex(p => p.Quality.Equals(quality));
-                //_logger.Debug(movie.SortName + ": " + quality);
+                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0] ?? "Unknown";
+                var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality));
+                _logger.Debug("CalculateMovieQualities " + movie.SortName + ' ' + quality);
 
                 if (index == -1)
                 {
@@ -431,9 +432,9 @@ namespace Statistics.Helpers
 
             foreach (var episode in episodes.OrderBy(x => x.SortName))
             {
-                var quality = episode.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
-                var index = qualityList.FindIndex(p => p.Quality.Equals(quality));
-                //_logger.Debug(episode.Series.SortName + ": " + episode.SortName + ": " + quality);
+                var quality = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0] ?? "Unknown";
+                var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality));
+                _logger.Debug("CalculateMovieQualities-episode " + episode.Series.SortName + ": " + episode.SortName + ' ' + quality);
 
                 if (index == -1)
                 {
@@ -469,8 +470,8 @@ namespace Statistics.Helpers
             foreach (var movie in movies.OrderBy(x => x.SortName))
             {
                 var codec = movie.GetMediaStreams().FirstOrDefault()?.Codec ?? "Unknown".Trim();
-                var index = qualityList.FindIndex(p => p.Codec.Equals(codec));
-                //_logger.Debug(movie.SortName + ": " + codec);
+                var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
+                _logger.Debug("CalculateMovieCodecs " + movie.SortName + ' ' + codec);
 
                 if (index == -1)
                 {
@@ -479,7 +480,7 @@ namespace Statistics.Helpers
                         Codec = codec,
                         Movies = 1,
                         Episodes = 0
-                    }); 
+                    });
                 }
                 else
                 {
@@ -490,8 +491,9 @@ namespace Statistics.Helpers
             foreach (var episode in episodes.OrderBy(x => x.SortName))
             {
                 var codec = episode.GetMediaStreams().FirstOrDefault()?.Codec ?? "Unknown".Trim();
-                var index = qualityList.FindIndex(p => p.Codec.Equals(codec));
-                //_logger.Debug(episode.Series.SortName + ": " + episode.SortName + ": " + codec);
+                var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
+                _logger.Debug("CalculateMovieCodecs-episode " + episode.Series.SortName + ": " + episode.SortName + ' ' + codec);
+
                 if (index == -1)
                 {
                     qualityList.Add(new VideoCodecModel
@@ -523,9 +525,10 @@ namespace Statistics.Helpers
 
             foreach (var movie in movies.OrderBy(x => x.SortName))
             {
-                var quality = movie.GetMediaStreams().FirstOrDefault(s => s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
-                var index = list.FindIndex(p => p.Title.Equals(quality));
-                //_logger.Debug(movie.Name + ' ' + quality + ' ' + index);
+                _logger.Debug("CalculateMovieQualityList " + movie.Name);
+                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
+                var index = list.FindIndex(p => p != null && p.Title != null && p.Title.Equals(quality));
+                _logger.Debug(quality + ' ' + index);
 
                 if (index == -1)
                 {
@@ -621,7 +624,7 @@ namespace Statistics.Helpers
                     }
                     catch (Exception e)
                     {
-                        _logger.Error(e.Message.ToString());
+                        _logger.Error(e.Message.ToString(), e);
                     }
                 }
 
@@ -756,7 +759,7 @@ namespace Statistics.Helpers
                         maxTime = showSize;
                         maxShow = show;
                     }
-                    catch(Exception) { }
+                    catch (Exception) { }
 
                 }
 
@@ -778,7 +781,7 @@ namespace Statistics.Helpers
                 Id = id
             };
         }
-        
+
         #endregion
 
         #region Release Date

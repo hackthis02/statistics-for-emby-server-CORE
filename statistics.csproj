@@ -2,9 +2,9 @@
 
 <PropertyGroup> 
   <TargetFrameworks>netstandard2.0;</TargetFrameworks> 
-  <Version>3.0.1.0</Version> 
-  <AssemblyVersion>3.0.1.0</AssemblyVersion> 
-  <FileVersion>3.0.20.0</FileVersion>
+  <Version>3.0.3.3</Version> 
+  <AssemblyVersion>3.0.3.3</AssemblyVersion> 
+  <FileVersion>3.0.3.2</FileVersion>
 </PropertyGroup>
 
 <ItemGroup>
@@ -23,8 +23,8 @@
 </ItemGroup>
 
 <ItemGroup>
-  <PackageReference Include="MediaBrowser.Server.Core" Version="4.6.0.50" />
-  <PackageReference Include="System.Memory" Version="4.5.4" />
+  <PackageReference Include="MediaBrowser.Server.Core" Version="4.7.7" />
+  <PackageReference Include="System.Memory" Version="4.5.5" />
 </ItemGroup>
 
 <ItemGroup>

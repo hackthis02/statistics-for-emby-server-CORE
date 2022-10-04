@@ -21,7 +21,7 @@
             }
         </style>
 
-        
+
         <script type="text/javascript">
             function showInfo(text, title) {
                 Dashboard.alert({ message: text, title: title });
@@ -34,23 +34,16 @@
                         Dashboard.showLoadingMsg();
 
                         ApiClient.getPluginConfiguration(MoviesPage.pluginId).then(function (config) {
-                            for (let h = 0, len = config.MovieQualityItems.Count; h < len; h++)
+                            for (let h = 0, len = config.MovieQualityItems.Count; h < len; h++) 
                             {
                                 var innertext = ''
-                                $.each(config.MovieQualityItems.Movies[h].Movies, function (j, v)
+                                $.each(config.MovieQualityItems.Movies[h].Movies, function (j, v) 
                                 {
                                     innertext += '<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + config.ServerId + '"><img src="/Items/' + v.Id + '/Images/Primary" height="200px" alt="' + v.Name + '" /></a>';
                                 });
 
                                 $("#pagestart")
                                     .append('<h2 id = "' + config.MovieQualityItems.Movies[h].Title + 'Title">' + config.MovieQualityItems.Movies[h].Title + '</h2><div id="' + config.MovieQualityItems.Movies[h].Title + '">' + innertext + '</div>');
-                                //add name of section
-                                //$(config.MovieQualityItems.Movies[h].Title + "Title").html(config.MovieQualityItems.Movies[h].Title);
-
-                                //$(section, page).html('');
-                                //$.each(config.MovieQualityItems.Movies[h].Movies, function (j, v) {$(config.MovieQualityItems.Movies[h].Title, page)
-                                //    .append('<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + config.ServerId + '"><img src="/Items/' + v.Id + '/Images/Primary" height="200px" alt="' + v.Name + '" /></a>');
-                                //});
                             }
                             Dashboard.hideLoadingMsg();
                         });

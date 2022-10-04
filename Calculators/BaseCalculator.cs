@@ -6,6 +6,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Querying;
 
 namespace statistics.Calculators
 {
@@ -75,7 +76,7 @@ namespace statistics.Calculators
 
         protected IEnumerable<User> GetAllUser()
         {
-            return UserManager.Users;
+            return UserManager.GetUserList(new UserQuery() { IsDisabled = false });
         }
 
         protected int GetOwnedCount(Type type)

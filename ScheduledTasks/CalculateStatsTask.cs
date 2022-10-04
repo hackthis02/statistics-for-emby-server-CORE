@@ -11,6 +11,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Tasks;
 using statistics;
@@ -60,7 +61,7 @@ namespace Statistics.ScheduledTasks
 
         async Task IScheduledTask.Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            var users = _userManager.Users.ToList();
+            var users = _userManager.GetUserList(new UserQuery() { EnableRemoteAccess = true }).ToList();
 
             // No users found, so stop the task
             if (users.Count == 0)
