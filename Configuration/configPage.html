@@ -213,11 +213,13 @@
         <!-- ReSharper disable once PossiblyUnassignedProperty -->
         <script type="text/javascript">
 
-            function showInfo(text, title) {
+            function showInfo(text, title)
+            {
                 Dashboard.alert({ message: text, title: title });
             }
 
-            (function () {
+            (function ()
+            {
                 require.config({
                     paths: {
                         chart: "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.6.0/Chart.bundle"
@@ -228,7 +230,8 @@
                 var MainPage = {
                     pluginId: '291d866f-baad-464a-aed6-a4a8b95a8fd7',
                     tvdbCallFailed: false,
-                    createStat: function (v) {
+                    createStat: function (v)
+                    {
                         console.log(v);
                         var html = '<div class="col ' +
                             v.Size +
@@ -246,13 +249,18 @@
                             '</div><div class="statCard-stats-number">' +
                             v.ValueLineOne +
                             '</div><div class="statCard-stats-number">' +
-                            v.ValueLineTwo +
-                            '</div></div></div></div></div>';
+                            v.ValueLineTwo 
+                        if (v.ValueLineThree !== undefined)
+                            html += '</div><div class="statCard-stats-number">' +
+                                v.ValueLineThree + '</div>'
+                        html += '</div></div></div></div></div>';
 
                         return html;
                     },
-                    createStatWithPoster: function (v, i) {
-                        if (v) {
+                    createStatWithPoster: function (v, i)
+                    {
+                        if (v)
+                        {
                             var html = '<div class="col ' +
                                 v.Size +
                                 '"><div class="statCard"><div class="statCard-content">';
@@ -264,7 +272,8 @@
                                     v.Title +
                                     "');\"><i class=\"md-icon\">info_outline</i></div>";
 
-                            if (v.Id !== undefined) {
+                            if (v.Id !== undefined)
+                            {
                                 html += '<a is="emby-linkbutton" href="/item?id=' + v.Id + '&serverId=' + i + '"><img src="/Items/' + v.Id + '/Images/Primary" height="105px"></a>'
                                 html += '<div>'
                             }
@@ -275,30 +284,36 @@
                                 v.ValueLineOne +
                                 '</div><div class="statCard-stats-number">' +
                                 v.ValueLineTwo +
-                                '</div></div></div></div>';
+                                '</div></div></div></div></div>';
 
-                            if (v.Id !== undefined) {
+                            if (v.Id !== undefined)
+                            {
                                 html += '</div>';
                             }
 
                             return html;
-                        } else {
+                        } else
+                        {
                             return "";
                         }
                     },
-                    loadStats: function (page) {
+                    loadStats: function (page)
+                    {
                         Dashboard.showLoadingMsg();
 
-                        ApiClient.getPluginConfiguration(MainPage.pluginId).then(function (config) {
-                            if (config.LastUpdated === undefined) {
+                        ApiClient.getPluginConfiguration(MainPage.pluginId).then(function (config)
+                        {
+                            if (config.LastUpdated === undefined)
+                            {
                                 Dashboard.alert({
                                     message:
-                                    'No configuration found, please run the statistics task on the Scheduled Tasks page and come back for the results.'
+                                        'No configuration found, please run the statistics task on the Scheduled Tasks page and come back for the results.'
                                 });
                                 $('#GoToUserStats', page).css("display", "none");
                                 $('#GoToShowProgress', page).css("display", "none");
                                 Dashboard.hideLoadingMsg();
-                            } else {
+                            } else
+                            {
                                 $("#statsIntro", page).append('<b>' + config.LastUpdated + '</b>');
 
                                 $("#generalStat", page).append(MainPage.createStat(config.MovieQualities));
@@ -323,41 +338,47 @@
                                 $("#showStat", page).append(MainPage.createStat(config.TotalShows));
                                 $("#showStat", page).append(MainPage.createStat(config.TotalOwnedEpisodes));
                                 $("#showStat", page).append(MainPage.createStat(config.TotalShowStudios));
+                                $("#showStat", page).append(MainPage.createStat(config.MostWatchedShows));
                                 $("#showStat", page).append(MainPage.createStatWithPoster(config.BiggestShow, config.ServerId));
                                 $("#showStat", page).append(MainPage.createStatWithPoster(config.LongestShow, config.ServerId));
                                 $("#showStat", page).append(MainPage.createStatWithPoster(config.OldestShow, config.ServerId));
                                 $("#showStat", page).append(MainPage.createStatWithPoster(config.NewestShow, config.ServerId));
                                 $("#showStat", page).append(MainPage.createStatWithPoster(config.NewestAddedEpisode, config.ServerId));
-                                
+
                                 Dashboard.hideLoadingMsg();
                             }
                         });
                     }
                 };
 
-                $('.statisticsConfigurationPage').on('pageinit', function (e) {
+                $('.statisticsConfigurationPage').on('pageinit', function (e)
+                {
                     var page = this;
 
                     $('#GoToUserStats', page).on('click',
-                        function () {
+                        function ()
+                        {
                             var href = Dashboard.getConfigurationPageUrl("StatisticsUserBased");
                             Dashboard.navigate(href);
                         });
 
                     $('#GoToMovieList', page).on('click',
-                        function () {
+                        function ()
+                        {
                             var href = Dashboard.getConfigurationPageUrl("StatisticsMovieList");
                             Dashboard.navigate(href);
                         });
 
                     $('#GoToMovieTextList', page).on('click',
-                        function () {
+                        function ()
+                        {
                             var href = Dashboard.getConfigurationPageUrl("StatisticsMovieListText");
                             Dashboard.navigate(href);
                         });
 
                     $('#GoToShowProgress', page).on('click',
-                        function () {
+                        function ()
+                        {
                             Dashboard.navigate(Dashboard.getConfigurationPageUrl("StatisticsShowOverview"));
                         });
 

@@ -76,7 +76,9 @@ namespace statistics.Calculators
 
         protected IEnumerable<User> GetAllUser()
         {
-            return UserManager.GetUserList(new UserQuery() { IsDisabled = false });
+            return UserManager.GetUserList(new UserQuery() { HasConnectUserId = false })
+                .Union(UserManager.GetUserList(new UserQuery() { HasConnectUserId = true }))
+                .Union(UserManager.GetUserList(new UserQuery() { HasConnectUserId = null })).ToList();
         }
 
         protected int GetOwnedCount(Type type)

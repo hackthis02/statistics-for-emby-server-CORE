@@ -28,6 +28,7 @@
         internal const string LongestShow = "Longest TV Series Runtime";
         internal const string BiggestMovie = "Largest Movie";
         internal const string BiggestShow = "Largest TV Series Total Size";
+        internal const string MostWatchedShows = "Most Watched Shows";
         internal const string OldesPremieredtMovie = "Oldest Premiered Movie";
         internal const string NewestPremieredMovie = "Newest Premiered Movie";
         internal const string OldestPremieredShow = "Oldest Premiered Show";
@@ -46,6 +47,7 @@
         internal const string HelpUserTotalMovies = "Total movies this user can see in his/her Emby library.";
         internal const string HelpUserTotalMoviesWatched = "Total movies this user has watched.";
         internal const string HelpUserTotalEpisodesWatched = "Total episodes this user has watched.";
+        internal const string HelpUserMostWatchedShows = "Most watched shows based on episodes finished, not series completed.";
         internal const string HelpUserTotalShowsFinished = "Total shows this user has finished watching. Only normal episodes, so no specials are needed to be watched.";
         internal const string HelpUserTotalShows = "Total TV Series this user can see in his/her Emby library.";
         internal const string HelpUserTotalEpisode = "Total episodes this user can see in his/her Emby library.";

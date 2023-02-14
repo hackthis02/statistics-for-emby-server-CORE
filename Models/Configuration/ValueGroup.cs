@@ -6,6 +6,7 @@
 
         public string ValueLineOne { get; set; }
         public string ValueLineTwo { get; set; }
+        public string ValueLineThree { get; set; }
         public string Size { get; set; }
         public object Raw { get; set; }
         public string ExtraInformation { get; set; }

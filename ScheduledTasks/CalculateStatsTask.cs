@@ -163,6 +163,7 @@ namespace Statistics.ScheduledTasks
                 PluginConfiguration.TotalShows = calculator.CalculateTotalShows();
                 PluginConfiguration.TotalOwnedEpisodes = calculator.CalculateTotalOwnedEpisodes();
                 PluginConfiguration.TotalShowStudios = calculator.CalculateTotalShowStudios();
+                PluginConfiguration.MostWatchedShows = calculator.CalculateMostWatchedShows(PluginConfiguration.TotalEpisodeCounts);
                 PluginConfiguration.BiggestShow = calculator.CalculateBiggestShow();
                 PluginConfiguration.LongestShow = calculator.CalculateLongestShow();
                 PluginConfiguration.OldestShow = calculator.CalculateOldestShow();
