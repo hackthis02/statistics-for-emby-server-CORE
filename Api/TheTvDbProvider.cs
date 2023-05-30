@@ -65,7 +65,7 @@ namespace Statistics.Api
             }
             catch (Exception x)
             {
-                _logger.ErrorException(x.Message, x);
+                _logger.Error(x.Message, x);
                 return 0;
             }
         }

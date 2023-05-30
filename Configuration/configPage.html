@@ -87,9 +87,13 @@
                     overflow: hidden;
                     position: relative;
                     display: flex;
-                    flex-flow: column;
-                    flex-direction: row;
                 }
+
+                    .statCard .statCard-content:has(a) {
+                        flex-flow: column;
+                        flex-direction: row;
+                        justify-content: left;
+                    }
 
                     .statCard .statCard-content img {
                         padding-right: 10px;

@@ -40,6 +40,7 @@
         internal const string HighestBitrate = "Highest Movie Bitrate";
         internal const string LowestBitrate = "Lowest Movie Bitrate";
         internal const string TotalStudios = "Total Studios";
+        internal const string TotalNetworks = "Total Networks";
         internal const string TotalUsers = "Total Users";
 
         //Help text for stats
@@ -48,6 +49,8 @@
         internal const string HelpUserTotalMoviesWatched = "Total movies this user has watched.";
         internal const string HelpUserTotalEpisodesWatched = "Total episodes this user has watched.";
         internal const string HelpUserMostWatchedShows = "Most watched shows based on episodes finished, not series completed.";
+        internal const string HelpQualities = "Entries with Resolution Not Available can be located in the log file after debug logging has been enabled by searching CalculateMovieQualities.";
+        internal const string HelpCodec = "Entries with Unknown can be located in the log file after debug logging has been enabled by searching CalculateMovieCodecs";
         internal const string HelpUserTotalShowsFinished = "Total shows this user has finished watching. Only normal episodes, so no specials are needed to be watched.";
         internal const string HelpUserTotalShows = "Total TV Series this user can see in his/her Emby library.";
         internal const string HelpUserTotalEpisode = "Total episodes this user can see in his/her Emby library.";

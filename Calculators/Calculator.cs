@@ -355,9 +355,16 @@ namespace Statistics.Helpers
         public ValueGroup CalculateTotalMovieStudios()
         {
             var movies = GetAllMovies();
-            var studios = movies.Where(x => x.Studios.Any()).Select(x => x.Studios).ToList();
+            List<string> studios = new List<string>();
 
-            var count = studios.Distinct().Count();
+            foreach (var studio in movies.Where(x => x.Studios.Any()).Select(x => x.Studios).ToList())
+            {
+                for (int i = 0; i < studio.Count(); i++)
+                    if (studios.IndexOf(studio[i]) == -1)
+                        studios.Add(studio[i]);
+            }
+
+            var count = studios.Count();
             return new ValueGroup
             {
                 Title = Constants.TotalStudios,
@@ -367,15 +374,22 @@ namespace Statistics.Helpers
             };
         }
 
-        public ValueGroup CalculateTotalShowStudios()
+        public ValueGroup CalculateTotalShowStudios() 
         {
             var series = GetAllSeries();
-            var studios = series.Where(x => x.Studios.Any()).Select(x => x.Studios).ToList();
+            List<string> networks = new List<string>();
 
-            var count = studios.Distinct().Count();
+            foreach (var network in series.Where(x => x.Studios.Any()).Select(x => x.Studios).ToList())
+            {
+                for (int i = 0; i < network.Count(); i++) 
+                    if (networks.IndexOf(network[i]) == -1)
+                        networks.Add(network[i]);
+            }
+
+            var count = networks.Count();
             return new ValueGroup
             {
-                Title = Constants.TotalStudios,
+                Title = Constants.TotalNetworks,
                 ValueLineOne = $"{count}",
                 ValueLineTwo = "",
                 ValueLineThree = null,
@@ -427,11 +441,11 @@ namespace Statistics.Helpers
 
             var qualityList = new List<VideoQualityModel>();
 
-            foreach (var movie in movies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            foreach (var movie in movies.Where(w => w.Name != null).OrderBy(x => x.Name))
             {
-                var quality = GetMediaResalution(movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));//?.DisplayTitle.Split(' ')[0] ?? "Unknown";
+                var quality = GetMediaResolution(movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
                 var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
-                _logger.Debug("CalculateMovieQualities " + movie.SortName + ' ' + quality);
+                _logger.Debug("CalculateMovieQualities " + movie.Name + ' ' + quality);
 
                 if (index == -1)
                 {
@@ -448,11 +462,11 @@ namespace Statistics.Helpers
                 }
             }
 
-            foreach (var episode in episodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            foreach (var episode in episodes.Where(w => w.Name != null).OrderBy(x => x.Name))
             {
-                var quality = GetMediaResalution(episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));//?.DisplayTitle.Split(' ')[0] ?? "Unknown";
+                var quality = GetMediaResolution(episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
                 var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
-                _logger.Debug("CalculateMovieQualities-episode " + (episode.Series.SortName ?? "invalid Series name") + ": " + episode.SortName + ' ' + quality);
+                _logger.Debug("CalculateMovieQualities-episode " + (episode.Series.Name ?? "invalid Series name") + ": " + episode.Name + ' ' + quality);
 
                 if (index == -1)
                 {
@@ -475,34 +489,35 @@ namespace Statistics.Helpers
                 ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", qualityList)}</table>",
                 ValueLineTwo = "",
                 ValueLineThree = null,
+                ExtraInformation = Constants.HelpQualities,
                 Size = "half"
             };
         }
 
-        public string GetMediaResalution(MediaStream typeInfo)
+        string GetMediaResolution(MediaStream typeInfo)
         {
             string resolution = "";
+
+            if (typeInfo == null || typeInfo.Width == null)
+                return "Resolution Not Available";
+
             if (Convert.ToInt32(typeInfo.Width) >= 1281 && Convert.ToInt32(typeInfo.Width) <= 1920)
             {
                 resolution = "1080p";
             }
-
-            if (Convert.ToInt32(typeInfo.Width) >= 3841 && Convert.ToInt32(typeInfo.Width) <= 7680)
+            else if (Convert.ToInt32(typeInfo.Width) >= 3841 && Convert.ToInt32(typeInfo.Width) <= 7680)
             {
                 resolution = "8K";
             }
-
-            if (Convert.ToInt32(typeInfo.Width) >= 1921 && Convert.ToInt32(typeInfo.Width) <= 3840)
+            else if (Convert.ToInt32(typeInfo.Width) >= 1921 && Convert.ToInt32(typeInfo.Width) <= 3840)
             {
                 resolution = "4K";
             }
-
-            if (Convert.ToInt32(typeInfo.Width) >= 1200 && Convert.ToInt32(typeInfo.Width) <= 1280)
+            else if (Convert.ToInt32(typeInfo.Width) >= 1200 && Convert.ToInt32(typeInfo.Width) <= 1280)
             {
                 resolution = "720p";
             }
-
-            if (Convert.ToInt32(typeInfo.Width) < 1200)
+            else if (Convert.ToInt32(typeInfo.Width) < 1200)
             {
                 resolution = "SD";
             }
@@ -565,6 +580,7 @@ namespace Statistics.Helpers
                 ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", qualityList)}</table>",
                 ValueLineTwo = "",
                 ValueLineThree = null,
+                ExtraInformation = Constants.HelpCodec,
                 Size = "half"
             };
         }
@@ -629,20 +645,34 @@ namespace Statistics.Helpers
                     // ignored
                 }
             }
-
-            maxSize = maxSize / 1073741824; //Byte to Gb
-            var valueLineOne = CheckMaxLength($"{maxSize:F1} Gb");
-            var valueLineTwo = CheckMaxLength($"{biggestMovie.Name}");
-
-            return new ValueGroup
+            if (biggestMovie.Id.ToString() != "00000000-0000-0000-0000-000000000000")
             {
-                Title = Constants.BiggestMovie,
-                ValueLineOne = valueLineOne,
-                ValueLineTwo = valueLineTwo,
-                ValueLineThree = null,
-                Size = "half",
-                Id = biggestMovie.Id.ToString()
-            };
+                maxSize = maxSize / 1073741824; //Byte to Gb
+                var valueLineOne = CheckMaxLength($"{maxSize:F1} Gb");
+                var valueLineTwo = CheckMaxLength($"{biggestMovie.Name}");
+
+                return new ValueGroup
+                {
+                    Title = Constants.BiggestMovie,
+                    ValueLineOne = valueLineOne,
+                    ValueLineTwo = valueLineTwo,
+                    ValueLineThree = null,
+                    Size = "half",
+                    Id = biggestMovie.Id.ToString() != "" ? biggestMovie.Id.ToString() : null
+                };
+            }
+            else
+            {
+                return new ValueGroup
+                {
+                    Title = Constants.BiggestMovie,
+                    ValueLineOne = Constants.NoData,
+                    ValueLineTwo = "",
+                    ValueLineThree = null,
+                    Size = "half",
+                    Id = null
+                };
+            }
         }
 
         public ValueGroup CalculateBiggestShow()
@@ -693,7 +723,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -707,6 +737,7 @@ namespace Statistics.Helpers
             {
                 foreach (var show in showList)
                 {
+
                     SetUser(user);
                     var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0;
                     var collectedEpisodes = GetOwnedEpisodesCount(show);
@@ -715,7 +746,9 @@ namespace Statistics.Helpers
                     var seenSpecials = GetPlayedSpecials(show);
 
                     if (collectedEpisodes > totalEpisodes)
+                    {
                         totalEpisodes = collectedEpisodes;
+                    }
 
                     decimal watched = 0;
                     decimal collected = 0;
@@ -737,7 +770,6 @@ namespace Statistics.Helpers
                     }
                     else
                     {
-
                         showProgress.Add(new ShowProgress
                         {
                             Name = show.Name,
@@ -762,6 +794,7 @@ namespace Statistics.Helpers
             {
                 show.Watched = Math.Round(show.Watched / users.Count(), 1);
             }
+
             List<ShowProgress> SortedList = showProgress.OrderByDescending(o => o.Watched).ToList();
 
             foreach (var show in SortedList)
@@ -769,17 +802,28 @@ namespace Statistics.Helpers
                 _logger.Debug("CalculateMostWatchedShows " + show.Name + " " + show.Watched);
             }
 
+            var lineone = "";
+            var linetwo = "";
+            var linethree = "";
+
+            if(SortedList.Count >= 1)
+                lineone = SortedList[0].Name;
+            if (SortedList.Count >= 2)
+                linetwo = SortedList[1].Name;
+            if (SortedList.Count >= 3)
+                linethree = SortedList[2].Name;
+
             return new ValueGroup
             {
                 Title = Constants.MostWatchedShows,
-                ValueLineOne = SortedList[0].Name ?? "",
-                ValueLineTwo = SortedList[1].Name ?? "",
-                ValueLineThree = SortedList[2].Name ?? "",
-                ExtraInformation = User != null ? Constants.HelpUserMostWatchedShows : null
+                ValueLineOne = lineone,
+                ValueLineTwo = linetwo,
+                ValueLineThree = linethree,
+                ExtraInformation = Constants.HelpUserMostWatchedShows
             };
         }
 
-            public ValueGroup CalculateHighestBitrateMovie()
+        public ValueGroup CalculateHighestBitrateMovie()
         {
             var valueLineOne = Constants.NoData;
             var valueLineTwo = "";
@@ -807,7 +851,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -838,7 +882,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -867,7 +911,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -917,7 +961,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -956,7 +1000,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -990,7 +1034,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -1019,6 +1063,7 @@ namespace Statistics.Helpers
                 }
             }
 
+
             return new ValueGroup
             {
                 Title = Constants.NewestAddedMovie,
@@ -1026,7 +1071,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -1061,7 +1106,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -1096,7 +1141,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -1130,7 +1175,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -1160,7 +1205,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
@@ -1186,7 +1231,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id
+                Id = id != "" ? id : null
             };
         }
 
