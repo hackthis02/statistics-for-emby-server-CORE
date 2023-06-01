@@ -74,7 +74,7 @@ namespace Statistics.Helpers
             var lastSeenList = viewedEpisodes
                 .Select(item => new LastSeenModel
                 {
-                    Name = item.SeriesName + " - " + item.Name,
+                    Name = item.Series.Name + " - S" + item.Season.IndexNumber.ToString().PadLeft(2, '0') + ":E" + item.IndexNumber.ToString().PadLeft(2, '0') + " - " + item.Name,
                     Played = UserDataManager.GetUserData(User, item).LastPlayedDate?.DateTime ?? DateTime.MinValue,
                     UserName = null
                 }.ToString()).ToList();
