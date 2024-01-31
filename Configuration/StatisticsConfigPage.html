@@ -1,38 +1,48 @@
-﻿<div data-role="page" class="page type-interior pluginConfigurationPage UserBasedStatisticsPage" data-require="emby-button,emby-select" data-controller="__plugin/StatisticsUserBasedJS">
+﻿﻿<div data-role="page" class="page type-interior pluginConfigurationPage statisticsConfigurationPage" data-require="emby-button,emby-select" data-controller="__plugin/StatisticsConfigPageJS">
     <div data-role="content">
         <div class="content-primary">
-            <h1>User-based statistics</h1>
+            <h1>Statistics plugin</h1>
+            <p name="statsIntro" id="statsIntro">
+            </p>
+
+            <h2>General statistics</h2>
             <div style="max-width: 900px;">
-                <div class="selectContainer">
-                    <label class="selectLabel selectLabelUnfocused" for="selectUser">Load statistics for:</label>
-                    <select is="emby-select" id="selectUser" label="Load statistics for:" class="emby-select-withoptioncolor emby-select"></select>
-                    <div class="selectArrowContainer">
-                        <div style="visibility: hidden;">0</div>
-                        <i class="md-icon selectArrow"></i>
-                    </div>
-                </div>
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" onclick="Emby.Page.back();">Go back</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToUserStats" id="GoToUserStats">View user-based statistics</button>
+            </div>
+            <div class="statRow" name="generalStat" id="generalStat"></div>
+
+            <h2>Movie statistics</h2>
+            <div style="max-width: 900px;">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieList" id="GoToMovieList">View movie list</button>
+            </div>
+            <div style="max-width: 900px;">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieTextList" id="GoToMovieTextList">View movie list (text-based)</button>
             </div>
 
-            <h2 id="UserTitle"></h2>
+            <div class="statRow" name="movieStat" id="movieStat"></div>
+            <div style="clear: both;"></div>
 
-            <h3>General statistics</h3>
-            <div class="statRow" id="overallStat"></div>
-
-            <h3>Movie statistics</h3>
-            <div class="statRow" id="movieStat"></div>
-
-            <h3>Show Statistics</h3>
-            <div class="statRow" id="showStat"></div>
+            <h2>Show Statistics</h2>
+            <div style="max-width: 900px;">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToShowProgress" id="GoToShowProgress">View user-based show progress</button>
+            </div>
+            <div class="statRow" name="showStat" id="showStat"></div>
+            <div style="clear: both;"></div>
         </div>
     </div>
+
     <style>
-        .statCard-stats-title {
-            font-size: 1rem;
-            padding-bottom: 5px;
+        img {
+            padding: 0px;
         }
 
-        .medium .statCard .statCard-stats-title, .large .statCard .statCard-stats-title {
+        .statCard-stats-title, statCard-stats-title-left {
+            font-size: 1rem;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+
+        .medium .statCard .statCard-stats-title, .large .statCard div .statCard-stats-title {
             text-align: center;
         }
 
@@ -45,11 +55,11 @@
                 width: 100%;
             }
 
-        .small .statCard .statCard-stats-number {
+        .small .statCard div .statCard-stats-number {
             text-align: center;
         }
 
-        .medium .statCard .statCard-stats-number, .large .statCard .statCard-stats-number {
+        .medium .statCard div .statCard-stats-number, .large .statCard div .statCard-stats-number {
             text-align: left;
         }
 
@@ -63,14 +73,23 @@
         }
 
             .statCard .statCard-content {
-                padding: 10px 14px;
+                padding: 10px;
                 background-color: rgb(82, 181, 75);
                 color: #fff !important;
                 overflow: hidden;
                 position: relative;
                 display: flex;
-                flex-flow: column;
             }
+
+                .statCard .statCard-content:has(a) {
+                    flex-flow: column;
+                    flex-direction: row;
+                    justify-content: left;
+                }
+
+                .statCard .statCard-content img {
+                    padding-right: 10px;
+                }
 
                 .statCard .statCard-content div {
                     margin: 0;
@@ -97,26 +116,25 @@
                 width: 16.66666%;
             }
 
-            .statRow .col.mediumThin {
-                width: 33.3333333%;
-            }
-
             .statRow .col.half {
                 width: 25%;
             }
 
-                .statRow .col.small .statCard-content, .statRow .col.half .statCard-content, .statRow .col.mediumThin .statCard-content {
+                .statRow .col.small .statCard-content, .statRow .col.half .statCard-content {
                     min-height: 105px;
                     align-items: center;
-                    justify-content: center;
                 }
 
+            .statRow .col.small .statCard-content {
+                justify-content: center;
+            }
+
             .statRow .col.medium {
-                width: 33.333333333%;
+                width: 33.33333333%;
             }
 
                 .statRow .col.medium .statCard-content, .statRow .col.large .statCard-content {
-                    min-height: 210px;
+                    min-height: 250px;
                 }
 
             .statRow .col.large {
@@ -135,8 +153,11 @@
                 .statRow .col.small .statCard-content, .statRow .col.half .statCard-content {
                     min-height: 105px;
                     align-items: center;
-                    justify-content: center;
                 }
+
+            .statRow .col.small .statCard-content {
+                justify-content: center;
+            }
 
             .statRow .col.medium {
                 width: 66.66666666%;
@@ -152,7 +173,7 @@
         }
 
         @media screen and (max-width: 900px) {
-            .statRow .col.small, .statRow .col.medium, .statRow .col.mediumThin, .statRow .col.half, .statRow .col.large {
+            .statRow .col.small, .statRow .col.medium, .statRow .col.half, .statRow .col.large {
                 width: 100%;
             }
 

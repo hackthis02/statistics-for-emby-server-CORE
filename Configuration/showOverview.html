@@ -1,17 +1,10 @@
-﻿<!DOCTYPE html>
-<html>
-<head>
-    <title>Statistics</title>
-</head>
-<body>
-    <link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">
-    <div data-role="page" class="page type-interior pluginConfigurationPage ShowProgressUserBasedPage" data-require="emby-button,emby-select">
+﻿﻿<div data-role="page" class="page type-interior pluginConfigurationPage ShowProgressUserBasedPage" data-require="emby-button,emby-select" data-controller="__plugin/StatisticsShowOverviewJS">
         <div data-role="content">
             <div class="content-primary" style="max-width: 900px;">
                 <h1>User-based show progress</h1>
                 <div class="selectContainer">
                     <label class="selectLabel selectLabelUnfocused" for="selectUserShowProgress">Load statistics for:</label>
-                    <select is="emby-select" id="selectUserShowProgress" label="Load statistics for:" class="emby-select-withoptioncolor emby-select"></select>
+                    <select is="emby-select" id="selectUserShowProgress" label="Load statistics for:" class="emby-select"></select>
                     <div class="selectArrowContainer">
                         <div style="visibility: hidden;">0</div><i class="md-icon selectArrow"></i>
                     </div>
@@ -22,8 +15,8 @@
                         <tr>
                             <th data-priority="persist" data-colstart="1" data-sort="string" class="center" id="defaultColumn"><span>Name</span></th>
                             <th data-priority="persist" data-colstart="2" data-sort="int" class="center"><span>Started</span></th>
-                            <th data-priority="persist" data-colstart="3" data-sort="float" class="center"><span>Watched</span><div class="infoBlock" onclick="showInfo('This column displays the number of watched episodes and the number of collected episodes. You will have 100% when you viewed all normal episodes (no specials, only aired)<br/><br/>If any special episodes are watched it will be displayed as \'+1 sp\'. ', 'Watched episodes');"><i class="md-icon">info_outline</i></div></th>
-                            <th data-priority="persist" data-colstart="6" data-sort="float" class="center"><span>Collected</span><div class="infoBlock" onclick="showInfo('This column displays the number of collected episodes and the number of episodes aired on THETVDB. You will have 100% when you collected all normal episodes (no specials, only aired)<br/><br/>If any special episodes are collected it will be displayed as \'+1 sp\'. ', 'Collected episodes');"><i class="md-icon">info_outline</i></div></th>
+                            <th data-priority="persist" data-colstart="3" data-sort="float" class="center"><span>Watched</span><div class="infoBlock" id="watchedInfo"><i class="md-icon">info_outline</i></div></th>
+                            <th data-priority="persist" data-colstart="6" data-sort="float" class="center"><span>Collected</span><div class="infoBlock" id="collectedInfo"><i class="md-icon">info_outline</i></div></th>
                             <th data-priority="persist" data-colstart="7" data-sort="float" class="center"><span>Score</span></th>
                             <th data-priority="persist" data-colstart="8" data-sort="string" class="center"><span>Status</span></th>
                         </tr>
@@ -149,132 +142,4 @@
                 background-color: #B11A10;
             }
         </style>
-        <!-- ReSharper disable once PossiblyUnassignedProperty -->
-        <script type="text/javascript">
-
-            function showInfo(text, title)
-            {
-                Dashboard.alert({ message: text, title: title });
-            }
-
-            (function (c)
-            {
-                c.fn.stupidtable = function (b) { return this.each(function () { var a = c(this); b = b || {}; b = c.extend({}, c.fn.stupidtable.default_sort_fns, b); a.data("sortFns", b); a.on("click.stupidtable", "thead th span", function () { c(this).parent().stupidsort() }) }) }; c.fn.stupidsort = function (b)
-                {
-                    var a = c(this), g = 0, f = c.fn.stupidtable.dir, e = a.closest("table"), k = a.data("sort") || null; if (null !== k)
-                    {
-                        a.parents("tr").find("th").slice(0, c(this).index()).each(function () { var a = c(this).attr("colspan") || 1; g += parseInt(a, 10) }); var d; 1 == arguments.length ?
-                            d = b : (d = b || a.data("sort-default") || f.ASC, a.data("sort-dir") && (d = a.data("sort-dir") === f.ASC ? f.DESC : f.ASC)); if (a.data("sort-dir") !== d) return a.data("sort-dir", d), e.trigger("beforetablesort", { column: g, direction: d }), e.css("display"), setTimeout(function ()
-                            {
-                                var b = [], l = e.data("sortFns")[k], h = e.children("tbody").children("tr"); h.each(function (a, d) { var e = c(d).children().eq(g), f = e.data("sort-value"); "undefined" === typeof f && (f = e.text(), e.data("sort-value", f)); b.push([f, d]) }); b.sort(function (a, b)
-                                {
-                                    return l(a[0],
-                                        b[0])
-                                }); d != f.ASC && b.reverse(); h = c.map(b, function (a) { return a[1] }); e.children("tbody").append(h); e.find("th").data("sort-dir", null).removeClass("sorting-desc sorting-asc"); a.data("sort-dir", d).addClass("sorting-" + d); e.trigger("aftertablesort", { column: g, direction: d }); e.css("display")
-                            }, 10), a
-                    }
-                }; c.fn.updateSortVal = function (b) { var a = c(this); a.is("[data-sort-value]") && a.attr("data-sort-value", b); a.data("sort-value", b); return a }; c.fn.stupidtable.dir = { ASC: "asc", DESC: "desc" }; c.fn.stupidtable.default_sort_fns =
-                    { "int": function (b, a) { return parseInt(b, 10) - parseInt(a, 10) }, "float": function (b, a) { return parseFloat(b) - parseFloat(a) }, string: function (b, a) { return b.toString().localeCompare(a.toString()) }, "string-ins": function (b, a) { b = b.toString().toLocaleLowerCase(); a = a.toString().toLocaleLowerCase(); return b.localeCompare(a) } }
-            })(jQuery);
-
-
-            var ShowProgressPage = {
-                pluginId: '291d866f-baad-464a-aed6-a4a8b95a8fd7',
-                loadStats: function (page, user)
-                {
-                    Dashboard.showLoadingMsg();
-                    ApiClient.getPluginConfiguration(ShowProgressPage.pluginId).then(function (config)
-                    {
-                        if (config.LastUpdated === undefined)
-                        {
-                            Dashboard.alert({ message: 'No configuration found, please run the statistics task on the Scheduled Tasks page and come back for the results.' });
-                            Dashboard.hideLoadingMsg();
-                        } else
-                        {
-                            $("#ShowsTable tbody").html("");
-                            const userStat = $.grep(config.UserStats, function (v) { return v.UserName === user; })[0];
-                            $.each(userStat.ShowProgresses, function (i, v)
-                            {
-                                var html = '<tr>';
-                                html += '<td data-sort-value="' + v.SortName + '">' + v.Name + '</td>';
-                                html += '<td>' + v.StartYear + '</td>';
-                                html += '<td data-sort-value="' + v.Watched + '" class="center ' + ShowProgressPage.calculateProgressClass(v.Watched) + '">' + v.SeenEpisodes + ' / ' + v.Episodes + ' (' + v.Watched + '%)';
-                                if (v.SeenSpecials > 0)
-                                    html += ' +' + v.SeenSpecials + ' sp';
-                                html += '</td>';
-                                html += '<td data-sort-value="' + v.Collected + '" class="center ' + ShowProgressPage.calculateProgressClass(v.Collected) + '">' + v.Episodes + ' / ' + v.Total + ' (' + v.Collected + '%)';
-                                if (v.Specials > 0)
-                                    html += ' +' + v.Specials + ' sp';
-                                html += '</td>';
-                                html += '<td>' + v.Score + '</td>';
-                                html += '<td>' + v.Status + '</td>';
-                                html += '</tr>';
-                                $("#ShowsTable tbody").append(html);
-                            });
-
-                            Dashboard.hideLoadingMsg();
-                        }
-                    });
-                },
-                calculateProgressClass: function (value)
-                {
-                    if (value == 0)
-                        return "";
-                    else if (value < 40)
-                        return "progress-20";
-                    else if (value < 60)
-                        return "progress-40";
-                    else if (value < 80)
-                        return "progress-60";
-                    else if (value < 100)
-                        return "progress-80";
-                    else
-                        return "progress-100";
-                }
-            };
-
-            var table;
-
-            $('.ShowProgressUserBasedPage').on('pageinit', function (event)
-            {
-                var page = this;
-                $('#selectUserShowProgress', page).on('change', function ()
-                {
-                    const user = $(this).find("option:selected").text();
-                    ShowProgressPage.loadStats(page, user);
-
-
-                    $("#defaultColumn span").parent().stupidsort('asc');
-                });
-            });
-
-            $('.ShowProgressUserBasedPage').on('pageshow', function (event)
-            {
-                var page = this;
-
-                table = $("#ShowsTable").stupidtable();
-
-                table.on("aftertablesort", function (event, data)
-                {
-                    console.log("SORTED");
-                    var th = $(this).find("th");
-                    th.removeClass("selectLabelFocused");
-                    th.eq(data.column).addClass('selectLabelFocused');
-                });
-
-                $("#defaultColumn span").parent().stupidsort('asc');
-
-                ApiClient.getUsers().then(function (users)
-                {
-                    
-                    ShowProgressPage.loadStats(page, users[0].Name);
-                    $('#selectUserShowProgress', page).html(users.map(function (user)
-                    {
-                        return '<option value="' + user.Id + '">' + user.Name + '</option>';
-                    }));
-                });
-            });
-        </script>
     </div>
-</body>
-</html>

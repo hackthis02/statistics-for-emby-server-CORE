@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
@@ -256,8 +258,8 @@ namespace Statistics.Helpers
             {
                 Title = Constants.TotalShows,
                 ValueLineOne = $"{GetOwnedCount(typeof(Series))}",
-                ValueLineTwo = "",
-                ValueLineThree = null,
+                ValueLineTwo = Constants.TotalEpisodes,
+                ValueLineThree = $"{GetOwnedCount(typeof(Episode))}",
                 ExtraInformation = User != null ? Constants.HelpUserTotalShows : null
             };
         }
@@ -374,14 +376,14 @@ namespace Statistics.Helpers
             };
         }
 
-        public ValueGroup CalculateTotalShowStudios() 
+        public ValueGroup CalculateTotalShowStudios()
         {
             var series = GetAllSeries();
             List<string> networks = new List<string>();
 
             foreach (var network in series.Where(x => x.Studios.Any()).Select(x => x.Studios).ToList())
             {
-                for (int i = 0; i < network.Count(); i++) 
+                for (int i = 0; i < network.Count(); i++)
                     if (networks.IndexOf(network[i]) == -1)
                         networks.Add(network[i]);
             }
@@ -443,43 +445,57 @@ namespace Statistics.Helpers
 
             foreach (var movie in movies.Where(w => w.Name != null).OrderBy(x => x.Name))
             {
-                var quality = GetMediaResolution(movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
-                var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
-                _logger.Debug("CalculateMovieQualities " + movie.Name + ' ' + quality);
+                try
+                {
+                    var quality = GetMediaResolution(movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
+                    var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
+                    _logger.Debug("CalculateMovieQualities " + movie.Name + ' ' + quality);
 
-                if (index == -1)
-                {
-                    qualityList.Add(new VideoQualityModel
+                    if (index == -1)
                     {
-                        Quality = quality.Trim(),
-                        Movies = 1,
-                        Episodes = 0
-                    });
+                        qualityList.Add(new VideoQualityModel
+                        {
+                            Quality = quality.Trim(),
+                            Movies = 1,
+                            Episodes = 0
+                        });
+                    }
+                    else
+                    {
+                        qualityList[index].Movies++;
+                    }
                 }
-                else
+                catch (Exception)
                 {
-                    qualityList[index].Movies++;
+                    _logger.Debug("CalculateMovieQualities-Error " + movie.Name);
                 }
             }
 
             foreach (var episode in episodes.Where(w => w.Name != null).OrderBy(x => x.Name))
             {
-                var quality = GetMediaResolution(episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
-                var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
-                _logger.Debug("CalculateMovieQualities-episode " + (episode.Series.Name ?? "invalid Series name") + ": " + episode.Name + ' ' + quality);
+                try
+                {
+                    var quality = GetMediaResolution(episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
+                    var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
+                    _logger.Debug("CalculateMovieCodecs-episode " + ((episode.Series != null && episode.Series.SortName != null) ? (episode.Series.Name) : ("invalid name")) + ": " + episode.SortName + ' ' + quality);
 
-                if (index == -1)
-                {
-                    qualityList.Add(new VideoQualityModel
+                    if (index == -1)
                     {
-                        Quality = quality.Trim(),
-                        Movies = 0,
-                        Episodes = 1
-                    });
+                        qualityList.Add(new VideoQualityModel
+                        {
+                            Quality = quality.Trim(),
+                            Movies = 0,
+                            Episodes = 1
+                        });
+                    }
+                    else
+                    {
+                        qualityList[index].Episodes++;
+                    }
                 }
-                else
+                catch (Exception)
                 {
-                    qualityList[index].Episodes++;
+                    _logger.Debug("CalculateMovieQualities-episode-Error " + episode.Name);
                 }
             }
 
@@ -534,43 +550,57 @@ namespace Statistics.Helpers
 
             foreach (var movie in movies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
-                var codec = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown".Trim();
-                var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
-                _logger.Debug("CalculateMovieCodecs " + movie.SortName + ' ' + codec);
+                try
+                {
+                    var codec = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown".Trim();
+                    var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
+                    _logger.Debug("CalculateMovieCodecs " + movie.SortName + ' ' + codec);
 
-                if (index == -1)
-                {
-                    qualityList.Add(new VideoCodecModel
+                    if (index == -1)
                     {
-                        Codec = codec,
-                        Movies = 1,
-                        Episodes = 0
-                    });
+                        qualityList.Add(new VideoCodecModel
+                        {
+                            Codec = codec,
+                            Movies = 1,
+                            Episodes = 0
+                        });
+                    }
+                    else
+                    {
+                        qualityList[index].Movies++;
+                    }
                 }
-                else
+                catch (Exception)
                 {
-                    qualityList[index].Movies++;
+                    _logger.Debug("CalculateMovieCodecs-Error " + movie.SortName);
                 }
             }
 
             foreach (var episode in episodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
-                var codec = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown".Trim();
-                var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
-                _logger.Debug("CalculateMovieCodecs-episode " + ((episode.Series.SortName != null) ? (episode.Series.SortName) : ("invalid name")) + ": " + episode.SortName + ' ' + codec);
+                try
+                {
+                    var codec = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown".Trim();
+                    var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
+                    _logger.Debug("CalculateMovieCodecs-episode " + ((episode.Series != null && episode.Series.SortName != null) ? (episode.Series.SortName) : ("invalid name")) + ": " + episode.SortName + ' ' + codec);
 
-                if (index == -1)
-                {
-                    qualityList.Add(new VideoCodecModel
+                    if (index == -1)
                     {
-                        Codec = codec,
-                        Movies = 0,
-                        Episodes = 1
-                    });
+                        qualityList.Add(new VideoCodecModel
+                        {
+                            Codec = codec,
+                            Movies = 0,
+                            Episodes = 1
+                        });
+                    }
+                    else
+                    {
+                        qualityList[index].Episodes++;
+                    }
                 }
-                else
+                catch (Exception)
                 {
-                    qualityList[index].Episodes++;
+                    _logger.Debug("CalculateMovieCodecs-episode-Error " + episode.SortName);
                 }
             }
 
@@ -806,7 +836,7 @@ namespace Statistics.Helpers
             var linetwo = "";
             var linethree = "";
 
-            if(SortedList.Count >= 1)
+            if (SortedList.Count >= 1)
                 lineone = SortedList[0].Name;
             if (SortedList.Count >= 2)
                 linetwo = SortedList[1].Name;
@@ -820,6 +850,102 @@ namespace Statistics.Helpers
                 ValueLineTwo = linetwo,
                 ValueLineThree = linethree,
                 ExtraInformation = Constants.HelpUserMostWatchedShows
+            };
+        }
+
+        public ValueGroup CalculateLeastWatchedShows(UpdateModel tvdbData)
+        {
+            var showList = GetAllSeries().OrderBy(x => x.SortName);
+            var users = GetAllUser();
+            var showProgress = new List<ShowProgress>();
+
+            foreach (var user in users)
+            {
+                foreach (var show in showList)
+                {
+
+                    SetUser(user);
+                    var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0;
+                    var collectedEpisodes = GetOwnedEpisodesCount(show);
+                    var seenEpisodes = GetPlayedEpisodeCount(show);
+                    var totalSpecials = GetOwnedSpecials(show);
+                    var seenSpecials = GetPlayedSpecials(show);
+
+                    if (collectedEpisodes > totalEpisodes)
+                    {
+                        totalEpisodes = collectedEpisodes;
+                    }
+
+                    decimal watched = 0;
+                    decimal collected = 0;
+                    if (totalEpisodes > 0)
+                    {
+                        collected = collectedEpisodes / (decimal)totalEpisodes * 100;
+                    }
+
+                    if (collectedEpisodes > 0)
+                    {
+                        watched = seenEpisodes / (decimal)collectedEpisodes * 100;
+                    }
+
+                    var index = showProgress.FindIndex(x => x.Name == show.Name);
+
+                    if (index != -1)
+                    {
+                        showProgress[index].Watched += Math.Round(watched, 1);
+                    }
+                    else
+                    {
+                        showProgress.Add(new ShowProgress
+                        {
+                            Name = show.Name,
+                            SortName = show.SortName,
+                            Score = show.CommunityRating,
+                            Status = show.Status,
+                            StartYear = show.PremiereDate?.ToString("yyyy"),
+                            Watched = Math.Round(watched, 1),
+                            Episodes = collectedEpisodes,
+                            SeenEpisodes = seenEpisodes,
+                            Specials = totalSpecials,
+                            SeenSpecials = seenSpecials,
+                            Collected = Math.Round(collected, 1),
+                            Total = totalEpisodes
+                        });
+                    }
+                }
+            }
+
+
+            foreach (var show in showProgress)
+            {
+                show.Watched = Math.Round(show.Watched / users.Count(), 1);
+            }
+
+            List<ShowProgress> SortedList = showProgress.OrderBy(o => o.Watched).ToList();
+
+            foreach (var show in SortedList)
+            {
+                _logger.Debug("CalculateLeastWatchedShows " + show.Name + " " + show.Watched);
+            }
+
+            var lineone = "";
+            var linetwo = "";
+            var linethree = "";
+
+            if (SortedList.Count >= 1)
+                lineone = SortedList[0].Name;
+            if (SortedList.Count >= 2)
+                linetwo = SortedList[1].Name;
+            if (SortedList.Count >= 3)
+                linethree = SortedList[2].Name;
+
+            return new ValueGroup
+            {
+                Title = Constants.LeastWatchedShows,
+                ValueLineOne = lineone,
+                ValueLineTwo = linetwo,
+                ValueLineThree = linethree,
+                ExtraInformation = Constants.HelpUserLeastWatchedShows
             };
         }
 

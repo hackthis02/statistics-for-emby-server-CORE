@@ -37,6 +37,7 @@ namespace statistics.Configuration
         public ValueGroup TotalOwnedEpisodes { get; set; }
         public ValueGroup TotalShowStudios { get; set; }
         public ValueGroup MostWatchedShows { get; set; }
+        public ValueGroup LeastWatchedShows { get; set; }
         public ValueGroup BiggestShow { get; set; }
         public ValueGroup LongestShow { get; set; }
         public ValueGroup NewestAddedEpisode { get; set; }

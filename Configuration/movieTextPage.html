@@ -1,71 +1,17 @@
-﻿<!DOCTYPE html>
-<html>
-<head>
-    <title>Statistics</title>
-</head>
-<body>
-    <link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">
-    <div data-role="page" class="page type-interior pluginConfigurationPage MoviesListPage" data-require="emby-button,emby-select">
-        <div data-role="content">
-            <div class="content-primary">
-                <h1>Movie list</h1>
-                <div style="max-width: 900px;">
-                    <button is="emby-button" type="button" class="raised button-cancel block emby-button" onclick="Emby.Page.back();">Go back</button>
-                </div>
-                <div id="pagestart"></div>
+﻿<div data-role="page" class="page type-interior pluginConfigurationPage MoviesListPage" data-require="emby-button,emby-select" data-controller="__plugin/StatisticsMovieListTextJS">
+    <div data-role="content">
+        <div class="content-primary">
+            <h1>Movie list</h1>
+            <div style="max-width: 900px;">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" onclick="Emby.Page.back();">Go back</button>
             </div>
+            <div id="pagestart"></div>
         </div>
-        <style>
-            img {
-                padding: 5px;
-            }
-        </style>
-
-
-        <script type="text/javascript">
-            function showInfo(text, title)
-            {
-                Dashboard.alert({ message: text, title: title });
-            }
-
-            (function ()
-            {
-                var MoviesListPage = {
-                    pluginId: '291d866f-baad-464a-aed6-a4a8b95a8fd7',
-                    loadStats: function (page)
-                    {
-                        Dashboard.showLoadingMsg();
-                        ApiClient.getPluginConfiguration(MoviesListPage.pluginId).then(function (config)
-                        {
-                            for (let h = 0, len = config.MovieQualityItems.Count; h < len; h++)
-                            {
-                                var innertext = ''
-                                $.each(config.MovieQualityItems.Movies[h].Movies, function (j, v)
-                                {
-                                    innertext += MoviesListPage.makeTable(v, config.ServerId);
-                                });
-
-                                $("#pagestart")
-                                    .append('<h2 id = "' + config.MovieQualityItems.Movies[h].Title + 'Title">' + config.MovieQualityItems.Movies[h].Title + '</h2><div><table id="' + config.MovieQualityItems.Movies[h].Title + '">' + innertext + '</table></div>');
-                            }
-                            Dashboard.hideLoadingMsg();
-                        });
-                    },
-                    makeTable: function (movie, ServerId)
-                    {
-                        var html = '<tr>';
-                        html += '<td><a is="emby-linkbutton" href="/item?id=' + movie.Id + '&serverId=' + ServerId + '">' + movie.Name + '</a></td>';
-                        html += '<td>' + movie.Year + '</td>';
-                        return html + '</tr>';
-                    }
-                };
-
-                $('.MoviesListPage').on('pageshow', function (event)
-                {
-                    MoviesListPage.loadStats(this);
-                });
-            })();
-        </script>
     </div>
-</body>
-</html>
+    <style>
+        img {
+            padding: 5px;
+        }
+    </style>
+
+</div>

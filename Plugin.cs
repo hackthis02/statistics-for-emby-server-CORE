@@ -20,13 +20,18 @@ namespace statistics
 
         public IEnumerable<PluginPageInfo> GetPages()
         {
-            return new[]
+            return new PluginPageInfo[]
             {
                 new PluginPageInfo
                 {
-                    Name = "Statistics",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.configPage.html",
+                    Name = "StatisticsConfigPage",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.StatisticsConfigPage.html",
                     EnableInMainMenu = true
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsConfigPageJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.StatisticsConfigPage.js"
                 },
                 new PluginPageInfo
                 {
@@ -35,18 +40,38 @@ namespace statistics
                 },
                 new PluginPageInfo
                 {
+                    Name = "StatisticsMovieListJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.moviePage.js"
+                },
+                new PluginPageInfo
+                {
                     Name = "StatisticsMovieListText",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieTextPage.html"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsMovieListTextJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieTextPage.js"
                 },
                 new PluginPageInfo
                 {
                     Name = "StatisticsShowOverview",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.showOverview.html"
                 },
+                 new PluginPageInfo
+                {
+                    Name = "StatisticsShowOverviewJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.showOverview.js"
+                },
                 new PluginPageInfo
                 {
                     Name = "StatisticsUserBased",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.userBased.html"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsUserBasedJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.userBased.js"
                 }
             };
         }

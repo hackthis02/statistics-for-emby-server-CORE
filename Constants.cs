@@ -29,6 +29,7 @@
         internal const string BiggestMovie = "Largest Movie";
         internal const string BiggestShow = "Largest TV Series Total Size";
         internal const string MostWatchedShows = "Most Watched Shows";
+        internal const string LeastWatchedShows = "Least Watched Shows";
         internal const string OldesPremieredtMovie = "Oldest Premiered Movie";
         internal const string NewestPremieredMovie = "Newest Premiered Movie";
         internal const string OldestPremieredShow = "Oldest Premiered Show";
@@ -49,6 +50,7 @@
         internal const string HelpUserTotalMoviesWatched = "Total movies this user has watched.";
         internal const string HelpUserTotalEpisodesWatched = "Total episodes this user has watched.";
         internal const string HelpUserMostWatchedShows = "Most watched shows based on episodes finished, not series completed.";
+        internal const string HelpUserLeastWatchedShows = "Least watched shows based on episodes finished, not series completed.";
         internal const string HelpQualities = "Entries with Resolution Not Available can be located in the log file after debug logging has been enabled by searching CalculateMovieQualities.";
         internal const string HelpCodec = "Entries with Unknown can be located in the log file after debug logging has been enabled by searching CalculateMovieCodecs";
         internal const string HelpUserTotalShowsFinished = "Total shows this user has finished watching. Only normal episodes, so no specials are needed to be watched.";
