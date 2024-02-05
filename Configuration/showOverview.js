@@ -68,7 +68,7 @@
                         });
 
                         rows.sort(function (a, b) {
-                            return sortFn(a[1].childNodes[columnIndex].innerHTML, b[1].childNodes[columnIndex].innerHTML);
+                            return sortFn(a[0] === 'undefined' ? -1000 : a[0], b[0] === 'undefined' ? -1000 : b[0]);
                         });
 
                         if (sortDirection !== stupidTable.dir.ASC) {
@@ -101,14 +101,6 @@
             }
         }
 
-        //function updateSortVal(element, value) {
-        //    if (element.hasAttribute(`data-sort-value`)) {
-        //        element.setAttribute(`data-sort-value`, value);
-        //    }
-        //    element.dataset.sortValue = value;
-        //    return element;
-        //}
-
         stupidTable.dir = { ASC: `asc`, DESC: `desc` };
 
         stupidTable.defaultSortFns = {
@@ -137,7 +129,7 @@
                 for (var i = 1; i < tbl.rows.length;) {
                     tbl.deleteRow(i);
                 }
-                                
+
                 userStat.ShowProgresses.forEach((v) => {
                     var index = 0;
                     var newRow = tbl.insertRow(-1);
@@ -149,7 +141,7 @@
                     newCell = newRow.insertCell(index++);
                     newCell.className = (`center`);
                     newText = document.createTextNode(v.StartYear);
-                    newCell.setAttribute("data-sort-value", v.Watched);
+                    newCell.setAttribute("data-sort-value", v.StartYear);
                     newCell.appendChild(newText);
 
                     newCell = newRow.insertCell(index++);
@@ -167,11 +159,13 @@
                     newCell = newRow.insertCell(index++);
                     newCell.className = (`center`);
                     newText = document.createTextNode(v.Score);
+                    newCell.setAttribute("data-sort-value", v.Score);
                     newCell.appendChild(newText);
 
                     newCell = newRow.insertCell(index++);
                     newCell.className = (`center`);
                     newText = document.createTextNode(v.Status);
+                    newCell.setAttribute("data-sort-value", v.Status);
                     newCell.appendChild(newText);
                 });
 
