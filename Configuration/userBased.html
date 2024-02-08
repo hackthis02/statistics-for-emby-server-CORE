@@ -5,10 +5,12 @@
             <div style="max-width: 900px;">
                 <div class="selectContainer">
                     <label class="selectLabel selectLabelUnfocused" for="selectUser">Load statistics for:</label>
-                    <select is="emby-select" id="selectUser" label="Load statistics for:" class="emby-select-withoptioncolor emby-select"></select>
-                    <div class="selectArrowContainer">
-                        <div style="visibility: hidden;">0</div>
-                        <i class="md-icon selectArrow"></i>
+                    <div class="emby-select-wrapper emby-select-wrapper-smaller">
+                        <select is="emby-select" id="selectUser" label="Load statistics for:" class="emby-select-backdropfilter emby-select"></select>
+                        <div class="selectArrowContainer">
+                            <div style="visibility: hidden;">0</div>
+                            <i class="md-icon selectArrow"></i>
+                        </div>
                     </div>
                 </div>
                 <button is="emby-button" type="button" class="raised button-cancel block emby-button" onclick="Emby.Page.back();">Go back</button>

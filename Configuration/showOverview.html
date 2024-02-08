@@ -4,9 +4,11 @@
                 <h1>User-based show progress</h1>
                 <div class="selectContainer">
                     <label class="selectLabel selectLabelUnfocused" for="selectUserShowProgress">Load statistics for:</label>
-                    <select is="emby-select" id="selectUserShowProgress" label="Load statistics for:" class="emby-select"></select>
-                    <div class="selectArrowContainer">
-                        <div style="visibility: hidden;">0</div><i class="md-icon selectArrow"></i>
+                    <div class="emby-select-wrapper emby-select-wrapper-smaller">
+                        <select is="emby-select" id="selectUserShowProgress" label="Load statistics for:" class="emby-select-backdropfilter emby-select"></select>
+                        <div class="selectArrowContainer">
+                            <div style="visibility: hidden;">0</div><i class="md-icon selectArrow"></i>
+                        </div>
                     </div>
                 </div>
                 <button is="emby-button" type="button" class="raised button-cancel block emby-button" onclick="Emby.Page.back();">Go back</button>
