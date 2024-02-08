@@ -1,4 +1,4 @@
-﻿define([`baseView`, `emby-button`, `emby-select`],
+﻿define([`baseView`, 'appRouter', `emby-button`, 'emby-linkbutton', `emby-select`],
     function (BaseView) {
         `use strict`;
 
@@ -126,47 +126,54 @@
                 var tbl = view.querySelector(`#ShowsTable > tbody`);
                 var userStat = config.UserStats.find(v => v.UserName === user);
 
-                for (var i = 1; i < tbl.rows.length;) {
+                for (var i = 0; i < tbl.rows.length;) {
                     tbl.deleteRow(i);
                 }
 
                 userStat.ShowProgresses.forEach((v) => {
-                    var index = 0;
-                    var newRow = tbl.insertRow(-1);
-                    var newCell = newRow.insertCell(index++);
-                    var newText = document.createTextNode(v.Name);
-                    newCell.setAttribute("data-sort-value", v.SortName);
-                    newCell.appendChild(newText);
 
-                    newCell = newRow.insertCell(index++);
+                    var cell = 0;
+                    var newRow = tbl.insertRow(-1);
+                    var newCell = newRow.insertCell(cell++);
+                    var link = document.createElement("a");
+                    link.setAttribute("is", 'emby-linkbutton');
+                    link.setAttribute("href", '/item?id=' + v.Id + '&serverId=' + config.ServerId);
+                    var newText = document.createTextNode(v.Name);
+                    link.appendChild(newText);
+                    newCell.setAttribute("data-sort-value", v.SortName);
+                    newCell.appendChild(link);
+                    
+                    newCell = newRow.insertCell(cell++);
                     newCell.className = (`center`);
                     newText = document.createTextNode(v.StartYear);
                     newCell.setAttribute("data-sort-value", v.StartYear);
                     newCell.appendChild(newText);
 
-                    newCell = newRow.insertCell(index++);
+                    newCell = newRow.insertCell(cell++);
                     newCell.className = (`center ` + calculateProgressClass(v.Watched));
                     newText = document.createTextNode(v.SeenEpisodes + ` / ` + v.Episodes + ` (` + v.Watched + ` %)` + (v.SeenSpecials > 0 ? ` +` + v.SeenSpecials + ` sp` : ``));
                     newCell.setAttribute("data-sort-value", v.Watched);
                     newCell.appendChild(newText);
 
-                    newCell = newRow.insertCell(index++);
+                    newCell = newRow.insertCell(cell++);
                     newCell.className = (`center ` + calculateProgressClass(v.Collected));
                     newText = document.createTextNode(v.Episodes + ` / ` + v.Total + ` (` + v.Collected + `%)` + (v.SeenSpecials > 0 ? ` +` + v.SeenSpecials + ` sp` : ``));
                     newCell.setAttribute("data-sort-value", v.Collected);
                     newCell.appendChild(newText);
 
-                    newCell = newRow.insertCell(index++);
+                    newCell = newRow.insertCell(cell++);
                     newCell.className = (`center`);
                     newText = document.createTextNode(v.Score);
                     newCell.setAttribute("data-sort-value", v.Score);
                     newCell.appendChild(newText);
 
-                    newCell = newRow.insertCell(index++);
+                    newCell = newRow.insertCell(cell++);
                     newCell.className = (`center`);
                     newText = document.createTextNode(v.Status);
                     newCell.setAttribute("data-sort-value", v.Status);
                     newCell.appendChild(newText);
+
+                    tbl.innerHTML += '';
                 });
 
                 Dashboard.hideLoadingMsg();

@@ -61,7 +61,7 @@ namespace Statistics.Helpers
 
             var showList = GetAllSeries().OrderBy(x => x.SortName);
             var showProgress = new List<ShowProgress>();
-            
+
             foreach (var show in showList)
             {
                 var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0;
@@ -98,7 +98,8 @@ namespace Statistics.Helpers
                     Specials = totalSpecials,
                     SeenSpecials = seenSpecials,
                     Collected = Math.Round(collected, 1),
-                    Total = totalEpisodes
+                    Total = totalEpisodes,
+                    Id = show.Id.ToString()
                 });
             }
 

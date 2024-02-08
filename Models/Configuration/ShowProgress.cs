@@ -16,5 +16,6 @@ namespace statistics.Models.Configuration
         public int SeenSpecials { get; set; }
         public decimal Collected { get; set; }
         public decimal Total { get; set; }
+        public string Id { get; set; }
     }
 }
