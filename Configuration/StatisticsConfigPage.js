@@ -18,7 +18,7 @@
 
             if (v.ExtraInformation !== undefined) {
                 var id = v.Title.replace(/\s/g, '');
-                html += `<div id="` + id + `" class=\"infoBlock\"><i class=\"md-icon\">info_outline</i></div>`;
+                html += `<div id="` + id + `" class=\"infoBlock\"><i class=\"md-icon\">info</i></div>`;
 
                 dynamicbuttons.push({ id: id, info: v.ExtraInformation, title: v.Title });
             }
@@ -44,7 +44,7 @@
 
                 if (v.ExtraInformation !== undefined) {
                     var id = v.Title.replace(/\s/g, "");
-                    html += `<div id="` + id + `" class=\"infoBlock\"><i class=\"md-icon\">info_outline</i></div>`;
+                    html += `<div id="` + id + `" class=\"infoBlock\"><i class=\"md-icon\">info</i></div>`;
 
                     dynamicbuttons.push({ id: id, info: v.ExtraInformation, title: v.Title });
                 }
