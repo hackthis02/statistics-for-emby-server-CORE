@@ -93,12 +93,12 @@ namespace Statistics.Helpers
                     Status = show.Status,
                     StartYear = show.PremiereDate?.ToString("yyyy"),
                     Watched = Math.Round(watched, 1),
-                    Episodes = collectedEpisodes,
+                    Episodes = collectedEpisodes - totalSpecials,
                     SeenEpisodes = seenEpisodes,
                     Specials = totalSpecials,
                     SeenSpecials = seenSpecials,
                     Collected = Math.Round(collected, 1),
-                    Total = totalEpisodes,
+                    Total = totalEpisodes - totalSpecials,
                     Id = show.Id.ToString()
                 });
             }
