@@ -135,13 +135,19 @@
                     var cell = 0;
                     var newRow = tbl.insertRow(-1);
                     var newCell = newRow.insertCell(cell++);
-                    var link = document.createElement("a");
-                    link.setAttribute("is", 'emby-linkbutton');
-                    link.setAttribute("href", '/item?id=' + v.Id + '&serverId=' + config.ServerId);
-                    var newText = document.createTextNode(v.Name);
-                    link.appendChild(newText);
-                    newCell.setAttribute("data-sort-value", v.SortName);
-                    newCell.appendChild(link);
+                    if (config.enableHyperlinks) {
+                        var link = document.createElement("a");
+                        link.setAttribute("is", 'emby-linkbutton');
+                        link.setAttribute("href", '/item?id=' + v.Id + '&serverId=' + config.ServerId);
+                        var newText = document.createTextNode(v.Name);
+                        link.appendChild(newText);
+                        newCell.setAttribute("data-sort-value", v.SortName);
+                        newCell.appendChild(link);
+                    } else {
+                        newText = document.createTextNode(v.Name);
+                        newCell.setAttribute("data-sort-value", v.SortName);
+                        newCell.appendChild(newText);
+                    }
                     
                     newCell = newRow.insertCell(cell++);
                     newCell.className = (`center`);

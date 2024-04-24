@@ -24,7 +24,11 @@
 
             <h2>Show Statistics</h2>
             <div style="max-width: 900px;">
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToShowProgress" id="GoToShowProgress">View user-based show progress</button>
+                <label class="emby-checkbox-label">
+                    <input id="showHyperLinks" is="emby-checkbox" class="emby-checkbox" type="checkbox">
+                    <span class="checkboxLabel">Enable show hyperlinks</span>
+                </label>
+                <button style="max-width: 75%;" is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToShowProgress" id="GoToShowProgress">View user-based show progress</button>                
             </div>
             <div class="statRow" name="showStat" id="showStat"></div>
             <div style="clear: both;"></div>

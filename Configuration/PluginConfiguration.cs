@@ -47,7 +47,7 @@ namespace statistics.Configuration
         public string LastUpdated { get; set; }
         public string Version { get; set; }
         public string ServerId { get; set; }
-
+        public bool enableHyperlinks { get; set; }
         public MovieQualityObj MovieQualityItems { get; set; }
 
         public UpdateModel TotalEpisodeCounts { get; set; }

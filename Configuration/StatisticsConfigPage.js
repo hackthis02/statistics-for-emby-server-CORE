@@ -75,6 +75,8 @@
             Dashboard.showLoadingMsg();
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+
+                view.querySelector(`#showHyperLinks`).checked = config.enableHyperlinks;
                 
                 if (config.LastUpdated === undefined) {
                     Dashboard.alert({
@@ -168,6 +170,15 @@
                 function () {
                     Dashboard.navigate(Dashboard.getConfigurationPageUrl("StatisticsShowOverview"));
                 });
+
+            view.querySelector(`#showHyperLinks`).addEventListener(`click`,
+                function () {
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.enableHyperlinks = view.querySelector(`#showHyperLinks`).checked;
+                        ApiClient.updatePluginConfiguration(pluginId, config);
+                    });
+                    }
+                );
         }
 
 
