@@ -163,7 +163,7 @@
 
                     newCell = newRow.insertCell(cell++);
                     newCell.className = (`center ` + calculateProgressClass(v.Collected));
-                    newText = document.createTextNode(v.Episodes + ` / ` + v.Total + ` (` + v.Collected + `%)` + (v.SeenSpecials > 0 ? ` +` + v.SeenSpecials + ` sp` : ``));
+                    newText = document.createTextNode(v.Episodes + ` / ` + v.Total + ` (` + v.Collected + `%)` + (v.Specials > 0 ? ` +` + v.Specials  + ` sp` : ``));
                     newCell.setAttribute("data-sort-value", v.Collected);
                     newCell.appendChild(newText);
 
