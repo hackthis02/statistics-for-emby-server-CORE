@@ -157,7 +157,7 @@
 
                     newCell = newRow.insertCell(cell++);
                     newCell.className = (`center ` + calculateProgressClass(v.Watched));
-                    newText = document.createTextNode(v.SeenEpisodes + ` / ` + v.Episodes + ` (` + v.Watched + ` %)` + (v.SeenSpecials > 0 ? ` +` + v.SeenSpecials + ` sp` : ``));
+                    newText = document.createTextNode(v.SeenEpisodes + ` / ` + v.Episodes + ` (` + v.Watched + ` %)` + (v.Specials > 0 ? ` +` + v.SeenSpecials + `/` + v.Specials + ` sp` : ``));
                     newCell.setAttribute("data-sort-value", v.Watched);
                     newCell.appendChild(newText);
 

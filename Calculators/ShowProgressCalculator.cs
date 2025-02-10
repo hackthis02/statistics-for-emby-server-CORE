@@ -64,11 +64,11 @@ namespace Statistics.Helpers
 
             foreach (var show in showList)
             {
-                var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0;
-                var collectedEpisodes = GetOwnedEpisodesCount(show);
-                var seenEpisodes = GetPlayedEpisodeCount(show);
                 var totalSpecials = GetOwnedSpecials(show);
                 var seenSpecials = GetPlayedSpecials(show);
+                var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0 - (totalSpecials > 0 ? totalSpecials : 0);
+                var collectedEpisodes = GetOwnedEpisodesCount(show);
+                var seenEpisodes = GetPlayedEpisodeCount(show);
 
                 if (collectedEpisodes > totalEpisodes)
                     totalEpisodes = collectedEpisodes;
@@ -80,7 +80,7 @@ namespace Statistics.Helpers
                     collected = collectedEpisodes / (decimal)totalEpisodes * 100;
                 }
 
-                if (collectedEpisodes > 0)
+                if (seenEpisodes > 0)
                 {
                     watched = seenEpisodes / (decimal)collectedEpisodes * 100;
                 }
@@ -93,12 +93,12 @@ namespace Statistics.Helpers
                     Status = show.Status,
                     StartYear = show.PremiereDate?.ToString("yyyy"),
                     Watched = Math.Round(watched, 1),
-                    Episodes = collectedEpisodes - totalSpecials,
+                    Episodes = collectedEpisodes,
                     SeenEpisodes = seenEpisodes,
                     Specials = totalSpecials,
                     SeenSpecials = seenSpecials,
                     Collected = Math.Round(collected, 1),
-                    Total = totalEpisodes - totalSpecials,
+                    Total = totalEpisodes,
                     Id = show.Id.ToString()
                 });
             }

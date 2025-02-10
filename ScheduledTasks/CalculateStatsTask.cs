@@ -33,7 +33,6 @@ namespace Statistics.ScheduledTasks
         private IApplicationHost _appHost;
         private readonly IJsonSerializer _jsonSerializer;
 
-
         public CalculateStatsTask(ILogManager logger,
             IUserManager userManager,
             IUserDataManager userDataManager,
@@ -90,11 +89,12 @@ namespace Statistics.ScheduledTasks
 
             var activeUsers = new Dictionary<string, RunTime>();
 
+
             foreach (var user in users)
             {
                 await Task.Run(() =>
                 {
-                    using (var calculator = new Calculator(user, _userManager, _libraryManager, _userDataManager, _fileSystem, _logger))
+                    using (var calculator = new Calculator(user, _userManager, _libraryManager, _userDataManager, _fileSystem, _logger, PluginConfiguration.TotalEpisodeCounts))
                     {
                         var overallTime = calculator.CalculateOverallTime();
                         activeUsers.Add(user.Name, new RunTime(overallTime.Raw));
@@ -122,7 +122,7 @@ namespace Statistics.ScheduledTasks
                                 calculator.CalculateTotalShows(),
                                 calculator.CalculateTotalOwnedEpisodes(),
                                 calculator.CalculateTotalEpiosodesWatched(),
-                                calculator.CalculateTotalFinishedShows(PluginConfiguration.TotalEpisodeCounts),
+                                calculator.CalculateTotalFinishedShows(),
                                 calculator.CalculateFavoriteShowGenres(),
                                 calculator.CalculateShowTime(),
                                 calculator.CalculateShowTime(false),
@@ -140,7 +140,7 @@ namespace Statistics.ScheduledTasks
                 progress.Report(percentPerUser * numComplete);
             }
 
-            using (var calculator = new Calculator(null, _userManager, _libraryManager, _userDataManager, _fileSystem, _logger))
+            using (var calculator = new Calculator(null, _userManager, _libraryManager, _userDataManager, _fileSystem, _logger, PluginConfiguration.TotalEpisodeCounts))
             {
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
                 PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
@@ -163,8 +163,8 @@ namespace Statistics.ScheduledTasks
                 PluginConfiguration.TotalShows = calculator.CalculateTotalShows();
                 //PluginConfiguration.TotalOwnedEpisodes = calculator.CalculateTotalOwnedEpisodes();
                 PluginConfiguration.TotalShowStudios = calculator.CalculateTotalShowStudios();
-                PluginConfiguration.MostWatchedShows = calculator.CalculateMostWatchedShows(PluginConfiguration.TotalEpisodeCounts);
-                PluginConfiguration.LeastWatchedShows = calculator.CalculateLeastWatchedShows(PluginConfiguration.TotalEpisodeCounts);
+                PluginConfiguration.MostWatchedShows = calculator.CalculateMostWatchedShows();
+                PluginConfiguration.LeastWatchedShows = calculator.CalculateLeastWatchedShows();
                 PluginConfiguration.BiggestShow = calculator.CalculateBiggestShow();
                 PluginConfiguration.LongestShow = calculator.CalculateLongestShow();
                 PluginConfiguration.OldestShow = calculator.CalculateOldestShow();

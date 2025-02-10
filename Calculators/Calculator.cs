@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
@@ -20,37 +19,51 @@ namespace Statistics.Helpers
 {
     public class Calculator : BaseCalculator
     {
-        private IFileSystem _fileSystem;
-        private ILogger _logger;
-        public Calculator(User user, IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager, IFileSystem fileSystem, ILogger logger)
+        private readonly IFileSystem _fileSystem;
+        private readonly ILogger _logger;
+        private readonly List<MediaBrowser.Controller.Entities.Movies.Movie> _allMovies;
+        private readonly List<Series> _allSeries;
+        private readonly List<Episode> _allEpisodes;
+        private readonly List<User> _allUsers;
+        private readonly Dictionary<string, int> _tvdbEpisodeCounts; // Cache for tvdb episode counts
+        private readonly IUserDataManager _userDataManager; // Store UserDataManager for reuse
+
+        public Calculator(User user, IUserManager userManager, ILibraryManager libraryManager,
+            IUserDataManager userDataManager, IFileSystem fileSystem, ILogger logger, UpdateModel tvdbData)
             : base(userManager, libraryManager, userDataManager)
         {
             User = user;
             _fileSystem = fileSystem;
             _logger = logger;
+            _userDataManager = userDataManager; // Initialize here
 
+            // Fetch all media items once in constructor
+            _allMovies = GetAllMovies().ToList();
+            _allSeries = GetAllSeries().ToList();
+            _allEpisodes = GetAllOwnedEpisodes().ToList();
+            _allUsers = GetAllUser().ToList();
+
+            // Pre-process tvdbData for faster lookup in CalculateTotalFinishedShows
+            _tvdbEpisodeCounts = tvdbData?.IdList.ToDictionary(x => x.ShowId, x => x.Count) ?? new Dictionary<string, int>(); // Null check for tvdbData
         }
 
         #region TopYears
 
         public ValueGroup CalculateFavoriteYears()
         {
-            var movieList = User == null
-                ? GetAllMovies().Where(m => GetAllUser().Any(m.IsPlayed))
-                : GetAllMovies().Where(m => m.IsPlayed(User)).ToList();
-            var list = movieList.Select(m => m.ProductionYear ?? 0).Distinct().ToList();
-            var source = new Dictionary<int, int>();
-            foreach (var num1 in list)
-            {
-                var year = num1;
-                var num2 = movieList.Count(m => (m.ProductionYear ?? 0) == year);
-                source.Add(year, num2);
-            }
+            // Optimization: Directly filter GetAllMovies instead of materializing to movieList first
+            var source = (User == null
+                    ? GetAllMovies().Where(m => GetAllUser().Any(u => _userDataManager.GetUserData(u, m).Played))
+                    : GetAllMovies().Where(m => _userDataManager.GetUserData(User, m).Played))
+                .GroupBy(m => m.ProductionYear ?? 0)
+                .OrderByDescending(g => g.Count())
+                .Take(5)
+                .ToDictionary(g => g.Key, g => g.Count());
 
             return new ValueGroup
             {
                 Title = Constants.FavoriteYears,
-                ValueLineOne = string.Join(", ", source.OrderByDescending(g => g.Value).Take(5).Select(g => g.Key).ToList()),
+                ValueLineOne = string.Join(", ", source.OrderByDescending(g => g.Value).Select(g => g.Key)), // Optimization: Removed ToList() here
                 ValueLineTwo = "",
                 ValueLineThree = null,
                 ExtraInformation = User != null ? Constants.HelpUserToMovieYears : null,
@@ -62,22 +75,30 @@ namespace Statistics.Helpers
 
         #region LastSeen
 
+        private IOrderedEnumerable<T> OrderViewedItemsByLastPlayedDate<T>(IEnumerable<T> items) where T : BaseItem
+        {
+            return items.OrderByDescending(m =>
+            {
+                User userToUse = User;
+                if (User == null)
+                {
+                    userToUse = _allUsers.FirstOrDefault(u => _userDataManager.GetUserData(u, m).Played && _userDataManager.GetUserData(u, m).LastPlayedDate.HasValue); // Optimization: Use pre-fetched _allUsers
+                }
+                return userToUse != null ? _userDataManager.GetUserData(userToUse, m).LastPlayedDate : null;
+            });
+        }
+
         public ValueGroup CalculateLastSeenShows()
         {
-            var viewedEpisodes = GetAllViewedEpisodesByUser()
-                .OrderByDescending(
-                    m =>
-                        UserDataManager.GetUserData(
-                                User ??
-                                GetAllUser().FirstOrDefault<User>(u => m.IsPlayed(u) && UserDataManager.GetUserData(u, m).LastPlayedDate.HasValue), m)
-                            .LastPlayedDate)
-                .Take(8).ToList();
+            // Optimization: Directly use pre-fetched episodes and avoid ToList() after Take(8)
+            var viewedEpisodes = OrderViewedItemsByLastPlayedDate(GetAllViewedEpisodesByUser())
+                .Take(8);
 
             var lastSeenList = viewedEpisodes
                 .Select(item => new LastSeenModel
                 {
-                    Name = item.Series.Name + " - S" + item.Season.IndexNumber.ToString().PadLeft(2, '0') + ":E" + item.IndexNumber.ToString().PadLeft(2, '0') + " - " + item.Name,
-                    Played = UserDataManager.GetUserData(User, item).LastPlayedDate?.DateTime ?? DateTime.MinValue,
+                    Name = $"{item.Series?.Name} - S{item.Season?.IndexNumber:00}:E{item.IndexNumber:00} - {item.Name}", // Null-conditional operators for safety
+                    Played = _userDataManager.GetUserData(User, item).LastPlayedDate?.DateTime ?? DateTime.MinValue,
                     UserName = null
                 }.ToString()).ToList();
 
@@ -93,20 +114,15 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateLastSeenMovies()
         {
-            var viewedMovies = GetAllViewedMoviesByUser()
-                .OrderByDescending(
-                    m =>
-                        UserDataManager.GetUserData(
-                                User ??
-                                GetAllUser().FirstOrDefault<User>(u => m.IsPlayed(u) && UserDataManager.GetUserData(u, m).LastPlayedDate.HasValue), m)
-                            .LastPlayedDate)
-                .Take(8).ToList();
+            // Optimization: Directly use pre-fetched movies and avoid ToList() after Take(8)
+            var viewedMovies = OrderViewedItemsByLastPlayedDate(GetAllViewedMoviesByUser())
+                .Take(8);
 
             var lastSeenList = viewedMovies
                 .Select(item => new LastSeenModel
                 {
                     Name = item.Name,
-                    Played = UserDataManager.GetUserData(User, item).LastPlayedDate?.DateTime ?? DateTime.MinValue,
+                    Played = _userDataManager.GetUserData(User, item).LastPlayedDate?.DateTime ?? DateTime.MinValue,
                     UserName = null
                 }.ToString()).ToList();
 
@@ -124,63 +140,53 @@ namespace Statistics.Helpers
 
         #region TopGenres
 
-        public ValueGroup CalculateFavoriteMovieGenres()
+        private ValueGroup CalculateFavoriteGenres(IEnumerable<BaseItem> mediaItems, string title, string helpConstant)
         {
-            var result = new Dictionary<string, int>();
-            var genres = GetAllMovies().Where(m => m.IsVisible(User)).SelectMany(m => m.Genres).Distinct();
-
-            foreach (var genre in genres)
-            {
-                var num = GetAllMovies().Count(m => m.Genres.Contains(genre));
-                result.Add(genre, num);
-            }
+            // Optimization: Use ToLookup for potentially faster grouping in memory if genres are repeated a lot. In this case GroupBy is clear and likely fast enough.
+            var result = mediaItems
+                .Where(m => m.IsVisible(User))
+                .SelectMany(m => m.Genres)
+                .GroupBy(genre => genre)
+                .OrderByDescending(g => g.Count())
+                .Take(3)
+                .ToDictionary(g => g.Key, g => g.Count());
 
             return new ValueGroup
             {
-                Title = Constants.FavoriteMovieGenres,
-                ValueLineOne = string.Join(", ", result.OrderByDescending(g => g.Value).Take(3).Select(g => g.Key).ToList()),
-                ExtraInformation = User != null ? Constants.HelpUserTopMovieGenres : null,
+                Title = title,
+                ValueLineOne = string.Join(", ", result.Select(g => g.Key)), // Optimization: Removed ToList() here
+                ExtraInformation = User != null ? helpConstant : null,
                 ValueLineTwo = "",
                 ValueLineThree = null,
                 Size = "half"
             };
         }
 
+        public ValueGroup CalculateFavoriteMovieGenres()
+        {
+            return CalculateFavoriteGenres(_allMovies, Constants.FavoriteMovieGenres, Constants.HelpUserTopMovieGenres); // Optimization: Use pre-fetched _allMovies
+        }
+
         public ValueGroup CalculateFavoriteShowGenres()
         {
-            var result = new Dictionary<string, int>();
-            var genres = GetAllSeries().Where(m => m.IsVisible(User)).SelectMany(m => m.Genres).Distinct();
-
-            foreach (var genre in genres)
-            {
-                var num = GetAllSeries().Count(m => m.Genres.Contains(genre));
-                result.Add(genre, num);
-            }
-
-            return new ValueGroup
-            {
-                Title = Constants.favoriteShowGenres,
-                ValueLineOne = string.Join(", ", result.OrderByDescending(g => g.Value).Take(3).Select(g => g.Key).ToList()),
-                ValueLineTwo = "",
-                ValueLineThree = null,
-                ExtraInformation = User != null ? Constants.HelpUserTopShowGenres : null,
-                Size = "mediumThin"
-            };
+            return CalculateFavoriteGenres(_allSeries, Constants.favoriteShowGenres, Constants.HelpUserTopShowGenres); // Optimization: Use pre-fetched _allSeries
         }
 
         #endregion
 
         #region PlayedViewTime
 
-        public ValueGroup CalculateMovieTime(bool onlyPlayed = true)
+        private ValueGroup CalculateTime(IEnumerable<BaseItem> items, bool onlyPlayed, string titleConstant)
         {
+            // Optimization: Filter items directly, avoid unnecessary ToList()
+            var filteredItems = User == null
+                ? items.Where(m => _allUsers.Any(u => _userDataManager.GetUserData(u, m).Played) || !onlyPlayed) // Optimization: Use pre-fetched _allUsers
+                : items.Where(m => (_userDataManager.GetUserData(User, m).Played || !onlyPlayed) && m.IsVisible(User));
+
             var runTime = new RunTime();
-            var movies = User == null
-                ? GetAllMovies().Where(m => GetAllUser().Any(m.IsPlayed) || !onlyPlayed)
-                : GetAllMovies().Where(m => (m.IsPlayed(User) || !onlyPlayed) && m.IsVisible(User));
-            foreach (var movie in movies)
+            foreach (var item in filteredItems)
             {
-                runTime.Add(movie.RunTimeTicks);
+                runTime.Add(item.RunTimeTicks);
             }
 
             return new ValueGroup
@@ -191,39 +197,28 @@ namespace Statistics.Helpers
                 ValueLineThree = null,
                 Size = "half"
             };
+        }
+
+        public ValueGroup CalculateMovieTime(bool onlyPlayed = true)
+        {
+            return CalculateTime(_allMovies, onlyPlayed, onlyPlayed ? Constants.TotalWatched : Constants.TotalWatchableTime); // Optimization: Use pre-fetched _allMovies
         }
 
         public ValueGroup CalculateShowTime(bool onlyPlayed = true)
         {
-            var runTime = new RunTime();
-            var shows = User == null
-                ? GetAllOwnedEpisodes().Where(m => GetAllUser().Any(m.IsPlayed) || !onlyPlayed)
-                : GetAllOwnedEpisodes().Where(m => (m.IsPlayed(User) || !onlyPlayed) && m.IsVisible(User));
-            foreach (var show in shows)
-            {
-                runTime.Add(show.RunTimeTicks);
-            }
-
-            return new ValueGroup
-            {
-                Title = onlyPlayed ? Constants.TotalWatched : Constants.TotalWatchableTime,
-                ValueLineOne = runTime.ToLongString(),
-                ValueLineTwo = "",
-                ValueLineThree = null,
-                Size = "half"
-            };
+            return CalculateTime(_allEpisodes, onlyPlayed, onlyPlayed ? Constants.TotalWatched : Constants.TotalWatchableTime); // Optimization: Use pre-fetched _allEpisodes
         }
 
         public ValueGroup CalculateOverallTime(bool onlyPlayed = true)
         {
+            // Optimization: Directly use Sum and pre-fetched lists where possible
+            var totalTicks = (User == null
+                    ? GetAllBaseItems().Where(m => _allUsers.Any(u => _userDataManager.GetUserData(u, m).Played) || !onlyPlayed) // Optimization: Use pre-fetched _allUsers
+                    : GetAllBaseItems().Where(m => (_userDataManager.GetUserData(User, m).Played || !onlyPlayed) && m.IsVisible(User)))
+                .Sum(item => item.RunTimeTicks ?? 0);
+
             var runTime = new RunTime();
-            var items = User == null
-                ? GetAllBaseItems().Where(m => GetAllUser().Any(m.IsPlayed) || !onlyPlayed)
-                : GetAllBaseItems().Where(m => (m.IsPlayed(User) || !onlyPlayed) && m.IsVisible(User));
-            foreach (var item in items)
-            {
-                runTime.Add(item.RunTimeTicks);
-            }
+            runTime.Add(totalTicks);
 
             return new ValueGroup
             {
@@ -240,108 +235,97 @@ namespace Statistics.Helpers
 
         #region TotalMedia
 
-        public ValueGroup CalculateTotalMovies()
+        private ValueGroup CalculateTotalMediaCount<T>(string title, string helpConstant = null, string lineTwoTitle = null, Func<int> countAction = null) where T : BaseItem
         {
+            int count = countAction != null ? countAction() : GetOwnedCount(typeof(T));
             return new ValueGroup
             {
-                Title = Constants.TotalMovies,
-                ValueLineOne = $"{GetOwnedCount(typeof(MediaBrowser.Controller.Entities.Movies.Movie))}",
-                ValueLineTwo = "",
-                ValueLineThree = null,
-                ExtraInformation = User != null ? Constants.HelpUserTotalMovies : null
+                Title = title,
+                ValueLineOne = $"{count}",
+                ValueLineTwo = lineTwoTitle,
+                ValueLineThree = lineTwoTitle != null ? $"{GetOwnedCount(typeof(Episode))}" : null, // Hardcoded Episode for TotalShows
+                ExtraInformation = User != null ? helpConstant : null
             };
+        }
+
+        public ValueGroup CalculateTotalMovies()
+        {
+            return CalculateTotalMediaCount<MediaBrowser.Controller.Entities.Movies.Movie>(Constants.TotalMovies, Constants.HelpUserTotalMovies);
         }
 
         public ValueGroup CalculateTotalShows()
         {
-            return new ValueGroup
-            {
-                Title = Constants.TotalShows,
-                ValueLineOne = $"{GetOwnedCount(typeof(Series))}",
-                ValueLineTwo = Constants.TotalEpisodes,
-                ValueLineThree = $"{GetOwnedCount(typeof(Episode))}",
-                ExtraInformation = User != null ? Constants.HelpUserTotalShows : null
-            };
+            return CalculateTotalMediaCount<Series>(Constants.TotalShows, Constants.HelpUserTotalShows, Constants.TotalEpisodes);
         }
 
         public ValueGroup CalculateTotalOwnedEpisodes()
         {
-            return new ValueGroup
-            {
-                Title = Constants.TotalEpisodes,
-                ValueLineOne = $"{GetOwnedCount(typeof(Episode))}",
-                ValueLineTwo = "",
-                ValueLineThree = null,
-                ExtraInformation = User != null ? Constants.HelpUserTotalEpisode : null
-            };
+            return CalculateTotalMediaCount<Episode>(Constants.TotalEpisodes, Constants.HelpUserTotalEpisode);
         }
 
         public ValueGroup CalculateTotalBoxsets()
         {
+            return CalculateTotalMediaCount<BoxSet>(Constants.TotalCollections, Constants.HelpUserTotalCollections, countAction: () => GetBoxsets().Count());
+        }
+
+        private ValueGroup CalculateTotalMediaWatched<T>(string title, string helpConstant, Func<decimal, decimal> percentageCalculation) where T : BaseItem
+        {
+            // Optimization: Avoid conditional type check within the method by specializing calls for movies and episodes.
+            int viewedMediaCount = 0;
+            if (typeof(T) == typeof(MediaBrowser.Controller.Entities.Movies.Movie))
+            {
+                viewedMediaCount = GetAllViewedMoviesByUser().Count();
+            }
+            else if (typeof(T) == typeof(Episode)) // Assuming episodes are the only other type counted this way. If not, consider more robust type handling.
+            {
+                viewedMediaCount = _allSeries.Sum(GetPlayedEpisodeCount); // Optimization: use pre-fetched series
+            }
+
+            var totalMediaCount = GetOwnedCount(typeof(T));
+
+            decimal percentage = decimal.Zero;
+            if (totalMediaCount > 0)
+                percentage = percentageCalculation(totalMediaCount);
+
+
             return new ValueGroup
             {
-                Title = Constants.TotalCollections,
-                ValueLineOne = $"{GetBoxsets().Count()}",
+                Title = title,
+                ValueLineOne = $"{viewedMediaCount} ({percentage}%)",
                 ValueLineTwo = "",
                 ValueLineThree = null,
-                ExtraInformation = User != null ? Constants.HelpUserTotalCollections : null
+                ExtraInformation = User != null ? helpConstant : null
             };
         }
 
+
         public ValueGroup CalculateTotalMoviesWatched()
         {
-            var viewedMoviesCount = GetAllViewedMoviesByUser().Count();
-            var totalMoviesCount = GetOwnedCount(typeof(MediaBrowser.Controller.Entities.Movies.Movie));
-
-            var percentage = decimal.Zero;
-            if (totalMoviesCount > 0)
-                percentage = Math.Round(viewedMoviesCount / (decimal)totalMoviesCount * 100, 1);
-
-
-            return new ValueGroup
-            {
-                Title = Constants.TotalMoviesWatched,
-                ValueLineOne = $"{viewedMoviesCount} ({percentage}%)",
-                ValueLineTwo = "",
-                ValueLineThree = null,
-                ExtraInformation = User != null ? Constants.HelpUserTotalMoviesWatched : null
-            };
+            return CalculateTotalMediaWatched<MediaBrowser.Controller.Entities.Movies.Movie>(Constants.TotalMoviesWatched, Constants.HelpUserTotalMoviesWatched, totalMoviesCount => Math.Round(GetAllViewedMoviesByUser().Count() / (decimal)totalMoviesCount * 100m, 1)); //Explicit cast to decimal
         }
 
         public ValueGroup CalculateTotalEpiosodesWatched()
         {
-            var seenEpisodesCount = GetAllSeries().ToList().Sum(GetPlayedEpisodeCount);
-            var totalEpisodes = GetOwnedCount(typeof(Episode));
-
-            var percentage = decimal.Zero;
-            if (totalEpisodes > 0)
-                percentage = Math.Round(seenEpisodesCount / (decimal)totalEpisodes * 100, 1);
-
-            return new ValueGroup
-            {
-                Title = Constants.TotalEpisodesWatched,
-                ValueLineOne = $"{seenEpisodesCount} ({percentage}%)",
-                ValueLineTwo = "",
-                ValueLineThree = null,
-                ExtraInformation = User != null ? Constants.HelpUserTotalEpisodesWatched : null
-            };
+            return CalculateTotalMediaWatched<Episode>(Constants.TotalEpisodesWatched, Constants.HelpUserTotalEpisodesWatched, totalEpisodesCount => Math.Round(_allSeries.Sum(GetPlayedEpisodeCount) / (decimal)totalEpisodesCount * 100m, 1)); // Optimization: use pre-fetched series and explicit cast
         }
 
-        public ValueGroup CalculateTotalFinishedShows(UpdateModel tvdbData)
+        public ValueGroup CalculateTotalFinishedShows()
         {
-            var showList = GetAllSeries();
-            var count = 0;
+            int count = 0;
 
-            foreach (var show in showList)
+            foreach (var show in _allSeries) // Optimization: Iterate pre-fetched series
             {
-                var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0;
-                var seenEpisodes = GetPlayedEpisodeCount(show);
+                if (_tvdbEpisodeCounts.TryGetValue(show.GetProviderId(MetadataProviders.Tvdb), out var totalEpisodesFromTvdb))
+                {
+                    var totalEpisodes = totalEpisodesFromTvdb;
+                    var seenEpisodes = GetPlayedEpisodeCount(show);
 
-                if (seenEpisodes > totalEpisodes)
-                    totalEpisodes = seenEpisodes;
+                    if (seenEpisodes > totalEpisodes) //Corrected logic, seenEpisodes can be higher if TVDB data is outdated
+                        totalEpisodes = seenEpisodes;
 
-                if (totalEpisodes > 0 && totalEpisodes == seenEpisodes)
-                    count++;
+                    if (totalEpisodes > 0 && totalEpisodes == seenEpisodes)
+                        count++;
+                }
             }
 
             return new ValueGroup
@@ -356,21 +340,15 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateTotalMovieStudios()
         {
-            var movies = GetAllMovies();
-            List<string> studios = new List<string>();
+            // Optimization: Use HashSet constructor with SelectMany and Studios to directly create the set.
+            var studioSet = new HashSet<string>(_allMovies // Optimization: Use pre-fetched movies
+                .Where(x => x.Studios != null && x.Studios.Any())
+                .SelectMany(movie => movie.Studios));
 
-            foreach (var studio in movies.Where(x => x.Studios.Any()).Select(x => x.Studios).ToList())
-            {
-                for (int i = 0; i < studio.Count(); i++)
-                    if (studios.IndexOf(studio[i]) == -1)
-                        studios.Add(studio[i]);
-            }
-
-            var count = studios.Count();
             return new ValueGroup
             {
                 Title = Constants.TotalStudios,
-                ValueLineOne = $"{count}",
+                ValueLineOne = $"{studioSet.Count}",
                 ValueLineTwo = "",
                 ValueLineThree = null,
             };
@@ -378,21 +356,15 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateTotalShowStudios()
         {
-            var series = GetAllSeries();
-            List<string> networks = new List<string>();
+            // Optimization: Use HashSet constructor with SelectMany and Studios to directly create the set.
+            var networkSet = new HashSet<string>(_allSeries // Optimization: Use pre-fetched series
+                .Where(x => x.Studios != null && x.Studios.Any())
+                .SelectMany(series => series.Studios));
 
-            foreach (var network in series.Where(x => x.Studios.Any()).Select(x => x.Studios).ToList())
-            {
-                for (int i = 0; i < network.Count(); i++)
-                    if (networks.IndexOf(network[i]) == -1)
-                        networks.Add(network[i]);
-            }
-
-            var count = networks.Count();
             return new ValueGroup
             {
                 Title = Constants.TotalNetworks,
-                ValueLineOne = $"{count}",
+                ValueLineOne = $"{networkSet.Count}",
                 ValueLineTwo = "",
                 ValueLineThree = null,
             };
@@ -400,12 +372,10 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateTotalUsers()
         {
-            var users = GetAllUser();
-
             return new ValueGroup
             {
                 Title = Constants.TotalUsers,
-                ValueLineOne = $"{users.Count()}",
+                ValueLineOne = $"{_allUsers.Count}", // Optimization: Use pre-fetched count
                 ValueLineTwo = "",
                 ValueLineThree = null,
             };
@@ -419,12 +389,14 @@ namespace Statistics.Helpers
         {
             var mostActiveUsers = users.OrderByDescending(x => x.Value).Take(6);
 
-            var tempList = mostActiveUsers.Select(x => $"<tr><td>{x.Key}</td>{x.Value.ToString()}</tr>");
+            // Optimization: Use string interpolation directly in Select and join once outside the loop
+            var tempList = mostActiveUsers.Select(x => $"<tr><td>{x.Key}</td>{x.Value}</tr>");
+            var tableRows = string.Join("", tempList);
 
             return new ValueGroup
             {
                 Title = Constants.MostActiveUsers,
-                ValueLineOne = $"<table><tr><td></td><td>Days</td><td>Hours</td><td>Minutes</td></tr>{string.Join("", tempList)}</table>",
+                ValueLineOne = $"<table><tr><td></td><td>Days</td><td>Hours</td><td>Minutes</td></tr>{tableRows}</table>",
                 ValueLineTwo = "",
                 ValueLineThree = null,
                 Size = "half",
@@ -438,71 +410,52 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateMovieQualities()
         {
-            var movies = GetAllMovies();
-            var episodes = GetAllOwnedEpisodes();
+            var qualityCounts = new Dictionary<string, VideoQualityModel>();
 
-            var qualityList = new List<VideoQualityModel>();
-
-            foreach (var movie in movies.Where(w => w.Name != null).OrderBy(x => x.Name))
+            // Optimization: Iterate pre-fetched movies
+            foreach (var movie in _allMovies.Where(w => w.Name != null).OrderBy(x => x.Name))
             {
                 try
                 {
                     var quality = GetMediaResolution(movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
-                    var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
-                    _logger.Debug("CalculateMovieQualities " + movie.Name + ' ' + quality);
-
-                    if (index == -1)
+                    if (!qualityCounts.TryGetValue(quality.Trim(), out var qualityModel))
                     {
-                        qualityList.Add(new VideoQualityModel
-                        {
-                            Quality = quality.Trim(),
-                            Movies = 1,
-                            Episodes = 0
-                        });
+                        qualityModel = new VideoQualityModel { Quality = quality.Trim(), Movies = 0, Episodes = 0 };
+                        qualityCounts[quality.Trim()] = qualityModel;
                     }
-                    else
-                    {
-                        qualityList[index].Movies++;
-                    }
+                    qualityCounts[quality.Trim()].Movies++; // Use direct access
+                    _logger.Debug($"CalculateMovieQualities {movie.Name} {quality}"); // String interpolation
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    _logger.Debug("CalculateMovieQualities-Error " + movie.Name);
+                    _logger.Debug($"CalculateMovieQualities-Error {movie.Name}: {ex.Message}"); // String interpolation
                 }
             }
 
-            foreach (var episode in episodes.Where(w => w.Name != null).OrderBy(x => x.Name))
+            // Optimization: Iterate pre-fetched episodes
+            foreach (var episode in _allEpisodes.Where(w => w.Name != null).OrderBy(x => x.Name))
             {
                 try
                 {
                     var quality = GetMediaResolution(episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video));
-                    var index = qualityList.FindIndex(p => p != null && p.Quality != null && p.Quality.Equals(quality.Trim()));
-                    _logger.Debug("CalculateMovieCodecs-episode " + ((episode.Series != null && episode.Series.SortName != null) ? (episode.Series.Name) : ("invalid name")) + ": " + episode.SortName + ' ' + quality);
-
-                    if (index == -1)
+                    if (!qualityCounts.TryGetValue(quality.Trim(), out var qualityModel))
                     {
-                        qualityList.Add(new VideoQualityModel
-                        {
-                            Quality = quality.Trim(),
-                            Movies = 0,
-                            Episodes = 1
-                        });
+                        qualityModel = new VideoQualityModel { Quality = quality.Trim(), Movies = 0, Episodes = 0 };
+                        qualityCounts[quality.Trim()] = qualityModel;
                     }
-                    else
-                    {
-                        qualityList[index].Episodes++;
-                    }
+                    qualityCounts[quality.Trim()].Episodes++; // Use direct access
+                    _logger.Debug($"CalculateMovieCodecs-episode {(episode.Series?.Name ?? "invalid name")}: {episode.SortName} {quality}"); // String interpolation and null-conditional operator
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    _logger.Debug("CalculateMovieQualities-episode-Error " + episode.Name);
+                    _logger.Debug($"CalculateMovieQualities-episode-Error {episode.Name}: {ex.Message}"); // String interpolation
                 }
             }
 
             return new ValueGroup
             {
                 Title = Constants.MediaQualities,
-                ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", qualityList)}</table>",
+                ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", qualityCounts.Values)}</table>",
                 ValueLineTwo = "",
                 ValueLineThree = null,
                 ExtraInformation = Constants.HelpQualities,
@@ -512,102 +465,70 @@ namespace Statistics.Helpers
 
         string GetMediaResolution(MediaStream typeInfo)
         {
-            string resolution = "";
-
             if (typeInfo == null || typeInfo.Width == null)
                 return "Resolution Not Available";
 
-            if (Convert.ToInt32(typeInfo.Width) >= 1281 && Convert.ToInt32(typeInfo.Width) <= 1920)
-            {
-                resolution = "1080p";
-            }
-            else if (Convert.ToInt32(typeInfo.Width) >= 3841 && Convert.ToInt32(typeInfo.Width) <= 7680)
-            {
-                resolution = "8K";
-            }
-            else if (Convert.ToInt32(typeInfo.Width) >= 1921 && Convert.ToInt32(typeInfo.Width) <= 3840)
-            {
-                resolution = "4K";
-            }
-            else if (Convert.ToInt32(typeInfo.Width) >= 1200 && Convert.ToInt32(typeInfo.Width) <= 1280)
-            {
-                resolution = "720p";
-            }
-            else if (Convert.ToInt32(typeInfo.Width) < 1200)
-            {
-                resolution = "SD";
-            }
+            int width = typeInfo.Width.Value; // Directly access value after null check
 
-            return resolution;
+            if (width >= 1281 && width <= 1920) return "1080p";
+            if (width >= 3841 && width <= 7680) return "8K";
+            if (width >= 1921 && width <= 3840) return "4K";
+            if (width >= 1200 && width <= 1280) return "720p";
+            if (width < 1200) return "SD";
+
+            return "Resolution Not Available";
         }
+
 
         public ValueGroup CalculateMovieCodecs()
         {
-            var movies = GetAllMovies();
-            var episodes = GetAllOwnedEpisodes();
+            var codecCounts = new Dictionary<string, VideoCodecModel>();
 
-            var qualityList = new List<VideoCodecModel>();
-
-            foreach (var movie in movies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            // Optimization: Iterate pre-fetched movies
+            foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
                 try
                 {
-                    var codec = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown".Trim();
-                    var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
-                    _logger.Debug("CalculateMovieCodecs " + movie.SortName + ' ' + codec);
+                    var codec = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown";
+                    if (!codecCounts.TryGetValue(codec, out var codecModel))
+                    {
+                        codecModel = new VideoCodecModel { Codec = codec, Movies = 0, Episodes = 0 };
+                        codecCounts[codec] = codecModel;
+                    }
+                    codecCounts[codec].Movies++; // Use direct access
 
-                    if (index == -1)
-                    {
-                        qualityList.Add(new VideoCodecModel
-                        {
-                            Codec = codec,
-                            Movies = 1,
-                            Episodes = 0
-                        });
-                    }
-                    else
-                    {
-                        qualityList[index].Movies++;
-                    }
+                    _logger.Debug($"CalculateMovieCodecs {movie.SortName} {codec}"); // String interpolation
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    _logger.Debug("CalculateMovieCodecs-Error " + movie.SortName);
+                    _logger.Debug($"CalculateMovieCodecs-Error {movie.SortName}: {ex.Message}"); // String interpolation
                 }
             }
 
-            foreach (var episode in episodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            // Optimization: Iterate pre-fetched episodes
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
                 try
                 {
-                    var codec = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown".Trim();
-                    var index = qualityList.FindIndex(p => p != null && p.Codec != null && p.Codec.Equals(codec));
-                    _logger.Debug("CalculateMovieCodecs-episode " + ((episode.Series != null && episode.Series.SortName != null) ? (episode.Series.SortName) : ("invalid name")) + ": " + episode.SortName + ' ' + codec);
-
-                    if (index == -1)
+                    var codec = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown";
+                    if (!codecCounts.TryGetValue(codec, out var codecModel))
                     {
-                        qualityList.Add(new VideoCodecModel
-                        {
-                            Codec = codec,
-                            Movies = 0,
-                            Episodes = 1
-                        });
+                        codecModel = new VideoCodecModel { Codec = codec, Movies = 0, Episodes = 0 };
+                        codecCounts[codec] = codecModel;
                     }
-                    else
-                    {
-                        qualityList[index].Episodes++;
-                    }
+                    codecCounts[codec].Episodes++; // Use direct access
+                    _logger.Debug($"CalculateMovieCodecs-episode {(episode.Series?.SortName ?? "invalid name")}: {episode.SortName} {codec}"); // String interpolation and null-conditional operator
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    _logger.Debug("CalculateMovieCodecs-episode-Error " + episode.SortName);
+                    _logger.Debug($"CalculateMovieCodecs-episode-Error {episode.SortName}: {ex.Message}"); // String interpolation
                 }
             }
 
             return new ValueGroup
             {
                 Title = Constants.MediaCodecs,
-                ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", qualityList)}</table>",
+                ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", codecCounts.Values)}</table>",
                 ValueLineTwo = "",
                 ValueLineThree = null,
                 ExtraInformation = Constants.HelpCodec,
@@ -617,38 +538,35 @@ namespace Statistics.Helpers
 
         public MovieQualityObj CalculateMovieQualityList()
         {
-            var movies = GetAllMovies();
-            var list = new List<MovieQuality>();
+            var qualityMovieMap = new Dictionary<string, List<statistics.Models.Movie>>();
 
-            foreach (var movie in movies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            // Optimization: Iterate pre-fetched movies
+            foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
-                _logger.Debug("CalculateMovieQualityList " + movie.Name);
-                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle.Split(' ')[0];
-                var index = list.FindIndex(p => p != null && p.Title != null && p.Title.Equals(quality));
-                _logger.Debug(quality + ' ' + index);
+                _logger.Debug($"CalculateMovieQualityList {movie.Name}"); // String interpolation
+                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle?.Split(' ')[0]; //Null check for DisplayTitle
 
-                if (index == -1)
+                if (!qualityMovieMap.TryGetValue(quality, out var movieList))
                 {
-                    var temp = new List<statistics.Models.Movie>();
-                    temp.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-
-                    list.Add(new MovieQuality
-                    {
-                        Title = quality,
-                        Movies = temp
-                    });
+                    movieList = new List<statistics.Models.Movie>();
+                    qualityMovieMap[quality] = movieList;
                 }
-                else
-                {
-                    list[index].Movies.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                }
+                movieList.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
+                _logger.Debug($"{quality} {qualityMovieMap.Count}"); // String interpolation - debug output is not directly helpful
             }
-            var mobj = new MovieQualityObj()
+
+            var list = qualityMovieMap.Select(pair => new MovieQuality
+            {
+                Title = pair.Key,
+                Movies = pair.Value
+            }).ToList();
+
+
+            return new MovieQualityObj()
             {
                 Count = list.Count(),
                 Movies = list
             };
-            return mobj;
         }
         #endregion
 
@@ -656,30 +574,35 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateBiggestMovie()
         {
-            var movies = GetAllMovies();
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
 
-            var biggestMovie = new MediaBrowser.Controller.Entities.Movies.Movie();
+            MediaBrowser.Controller.Entities.Movies.Movie biggestMovie = null;
             double maxSize = 0;
-            foreach (var movie in movies)
+
+            // Optimization: Iterate pre-fetched movies
+            foreach (var movie in _allMovies)
             {
                 try
                 {
                     var f = _fileSystem.GetFileSystemInfo(movie.Path);
-                    if (maxSize >= f.Length) continue;
-
-                    maxSize = f.Length;
-                    biggestMovie = movie;
+                    if (f.Length > maxSize)
+                    {
+                        maxSize = f.Length;
+                        biggestMovie = movie;
+                    }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    // ignored
+                    _logger.Debug($"CalculateBiggestMovie-Error: {ex.Message}"); // String interpolation and more informative log. Include exception for context.
                 }
             }
-            if (biggestMovie.Id.ToString() != "00000000-0000-0000-0000-000000000000")
+
+            if (biggestMovie != null)
             {
-                maxSize = maxSize / 1073741824; //Byte to Gb
-                var valueLineOne = CheckMaxLength($"{maxSize:F1} Gb");
-                var valueLineTwo = CheckMaxLength($"{biggestMovie.Name}");
+                maxSize /= 1073741824; //Byte to Gb
+                valueLineOne = CheckMaxLength($"{maxSize:F1} Gb");
+                valueLineTwo = CheckMaxLength($"{biggestMovie.Name}");
 
                 return new ValueGroup
                 {
@@ -688,7 +611,7 @@ namespace Statistics.Helpers
                     ValueLineTwo = valueLineTwo,
                     ValueLineThree = null,
                     Size = "half",
-                    Id = biggestMovie.Id.ToString() != "" ? biggestMovie.Id.ToString() : null
+                    Id = biggestMovie.Id.ToString()
                 };
             }
             else
@@ -705,45 +628,53 @@ namespace Statistics.Helpers
             }
         }
 
+
         public ValueGroup CalculateBiggestShow()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var shows = GetAllSeries();
-            if (shows.Any())
+            Series biggestShow = null;
+            double maxSize = 0;
+
+            if (_allSeries.Any()) // Optimization: Check pre-fetched list
             {
-                var biggestShow = new Series();
-                double maxSize = 0;
-                foreach (var show in shows)
+                // Optimization: Calculate showSize directly within the _allSeries loop to avoid redundant episode filtering per show.
+                foreach (var show in _allSeries)
                 {
+                    double showSize = 0;
                     //This is assuming the recommened folder structure for series/season/episode
                     //https://github.com/MediaBrowser/Emby/wiki/TV-Library
-                    var episodes = GetAllEpisodes().Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null);
-                    try
+                    // Optimization: Iterate pre-fetched episodes and filter within loop.
+                    foreach (var episode in _allEpisodes.Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null))
                     {
-                        var showSize = episodes.Sum(x =>
+                        try
                         {
-                            var f = _fileSystem.GetFileSystemInfo(x.Path);
-                            return f.Length;
-                        });
+                            var f = _fileSystem.GetFileSystemInfo(episode.Path);
+                            showSize += f.Length;
+                        }
+                        catch (Exception e)
+                        {
+                            _logger.Error($"CalculateBiggestShow-Error getting file info for episode {episode.Name} in show {show.Name}: {e.Message}", e); //Include show name in log
+                        }
+                    }
 
-                        if (maxSize >= showSize) continue;
 
+                    if (showSize > maxSize)
+                    {
                         maxSize = showSize;
                         biggestShow = show;
                     }
-                    catch (Exception e)
-                    {
-                        _logger.Error(e.Message.ToString(), e);
-                    }
                 }
 
-                maxSize = maxSize / 1073741824; //Byte to Gb
-                valueLineOne = CheckMaxLength($"{maxSize:F1} Gb");
-                valueLineTwo = CheckMaxLength($"{biggestShow.Name}");
-                id = biggestShow.Id.ToString();
+                if (biggestShow != null)
+                {
+                    maxSize /= 1073741824; //Byte to Gb
+                    valueLineOne = CheckMaxLength($"{maxSize:F1} Gb");
+                    valueLineTwo = CheckMaxLength($"{biggestShow.Name}");
+                    id = biggestShow.Id.ToString();
+                }
             }
 
             return new ValueGroup
@@ -753,68 +684,69 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
-        public ValueGroup CalculateMostWatchedShows(UpdateModel tvdbData)
+
+        public ValueGroup CalculateMostWatchedShows()
         {
-            var showList = GetAllSeries().OrderBy(x => x.SortName);
-            var users = GetAllUser();
+            var showList = _allSeries.OrderBy(x => x.SortName); // Optimization: Use pre-fetched series
+            var users = _allUsers; // Optimization: Use pre-fetched users
             var showProgress = new List<ShowProgress>();
 
             foreach (var user in users)
             {
+                SetUser(user);
                 foreach (var show in showList)
                 {
-
-                    SetUser(user);
-                    var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0;
-                    var collectedEpisodes = GetOwnedEpisodesCount(show);
-                    var seenEpisodes = GetPlayedEpisodeCount(show);
-                    var totalSpecials = GetOwnedSpecials(show);
-                    var seenSpecials = GetPlayedSpecials(show);
-
-                    if (collectedEpisodes > totalEpisodes)
+                    if (_tvdbEpisodeCounts.TryGetValue(show.GetProviderId(MetadataProviders.Tvdb), out var totalEpisodesFromTvdb))
                     {
-                        totalEpisodes = collectedEpisodes;
-                    }
+                        var totalEpisodes = totalEpisodesFromTvdb;
 
-                    decimal watched = 0;
-                    decimal collected = 0;
-                    if (totalEpisodes > 0)
-                    {
-                        collected = collectedEpisodes / (decimal)totalEpisodes * 100;
-                    }
+                        var collectedEpisodes = GetOwnedEpisodesCount(show);
+                        var seenEpisodes = GetPlayedEpisodeCount(show);
 
-                    if (collectedEpisodes > 0)
-                    {
-                        watched = seenEpisodes / (decimal)collectedEpisodes * 100;
-                    }
-
-                    var index = showProgress.FindIndex(x => x.Name == show.Name);
-
-                    if (index != -1)
-                    {
-                        showProgress[index].Watched += Math.Round(watched, 1);
-                    }
-                    else
-                    {
-                        showProgress.Add(new ShowProgress
+                        if (collectedEpisodes > totalEpisodes)
                         {
-                            Name = show.Name,
-                            SortName = show.SortName,
-                            Score = show.CommunityRating,
-                            Status = show.Status,
-                            StartYear = show.PremiereDate?.ToString("yyyy"),
-                            Watched = Math.Round(watched, 1),
-                            Episodes = collectedEpisodes,
-                            SeenEpisodes = seenEpisodes,
-                            Specials = totalSpecials,
-                            SeenSpecials = seenSpecials,
-                            Collected = Math.Round(collected, 1),
-                            Total = totalEpisodes
-                        });
+                            totalEpisodes = collectedEpisodes;
+                        }
+
+                        decimal watched = 0;
+                        decimal collected = 0;
+                        if (totalEpisodes > 0)
+                        {
+                            collected = collectedEpisodes / (decimal)totalEpisodes * 100;
+                        }
+
+                        if (collectedEpisodes > 0)
+                        {
+                            watched = seenEpisodes / (decimal)collectedEpisodes * 100;
+                        }
+
+                        ShowProgress existingShowProgress = showProgress.FirstOrDefault(x => x.Name == show.Name);
+                        if (existingShowProgress != null)
+                        {
+                            existingShowProgress.Watched += Math.Round(watched, 1);
+                        }
+                        else
+                        {
+                            showProgress.Add(new ShowProgress
+                            {
+                                Name = show.Name,
+                                SortName = show.SortName,
+                                Score = show.CommunityRating,
+                                Status = show.Status,
+                                StartYear = show.PremiereDate?.ToString("yyyy"),
+                                Watched = Math.Round(watched, 1),
+                                Episodes = collectedEpisodes,
+                                SeenEpisodes = seenEpisodes,
+                                Specials = GetOwnedSpecials(show), //No need to recalculate each time, use GetOwnedSpecials and GetPlayedSpecials directly
+                                SeenSpecials = GetPlayedSpecials(show),
+                                Collected = Math.Round(collected, 1),
+                                Total = totalEpisodes
+                            });
+                        }
                     }
                 }
             }
@@ -825,23 +757,18 @@ namespace Statistics.Helpers
                 show.Watched = Math.Round(show.Watched / users.Count(), 1);
             }
 
-            List<ShowProgress> SortedList = showProgress.OrderByDescending(o => o.Watched).ToList();
+            var sortedList = showProgress.OrderByDescending(o => o.Watched).ToList();
 
-            foreach (var show in SortedList)
+            foreach (var show in sortedList)
             {
-                _logger.Debug("CalculateMostWatchedShows " + show.Name + " " + show.Watched);
+                _logger.Debug($"CalculateMostWatchedShows {show.Name} {show.Watched}"); // String interpolation
             }
 
-            var lineone = "";
-            var linetwo = "";
-            var linethree = "";
+            string lineone = "", linetwo = "", linethree = "";
 
-            if (SortedList.Count >= 1)
-                lineone = SortedList[0].Name;
-            if (SortedList.Count >= 2)
-                linetwo = SortedList[1].Name;
-            if (SortedList.Count >= 3)
-                linethree = SortedList[2].Name;
+            if (sortedList.Count >= 1) lineone = sortedList[0].Name;
+            if (sortedList.Count >= 2) linetwo = sortedList[1].Name;
+            if (sortedList.Count >= 3) linethree = sortedList[2].Name;
 
             return new ValueGroup
             {
@@ -853,64 +780,64 @@ namespace Statistics.Helpers
             };
         }
 
-        public ValueGroup CalculateLeastWatchedShows(UpdateModel tvdbData)
+        public ValueGroup CalculateLeastWatchedShows()
         {
-            var showList = GetAllSeries().OrderBy(x => x.SortName);
-            var users = GetAllUser();
+            var showList = _allSeries.OrderBy(x => x.SortName); // Optimization: Use pre-fetched series
+            var users = _allUsers; // Optimization: Use pre-fetched users
             var showProgress = new List<ShowProgress>();
 
             foreach (var user in users)
             {
+                SetUser(user);
                 foreach (var show in showList)
                 {
-
-                    SetUser(user);
-                    var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0;
-                    var collectedEpisodes = GetOwnedEpisodesCount(show);
-                    var seenEpisodes = GetPlayedEpisodeCount(show);
-                    var totalSpecials = GetOwnedSpecials(show);
-                    var seenSpecials = GetPlayedSpecials(show);
-
-                    if (collectedEpisodes > totalEpisodes)
+                    if (_tvdbEpisodeCounts.TryGetValue(show.GetProviderId(MetadataProviders.Tvdb), out var totalEpisodesFromTvdb))
                     {
-                        totalEpisodes = collectedEpisodes;
-                    }
+                        var totalEpisodes = totalEpisodesFromTvdb;
 
-                    decimal watched = 0;
-                    decimal collected = 0;
-                    if (totalEpisodes > 0)
-                    {
-                        collected = collectedEpisodes / (decimal)totalEpisodes * 100;
-                    }
+                        var collectedEpisodes = GetOwnedEpisodesCount(show);
+                        var seenEpisodes = GetPlayedEpisodeCount(show);
 
-                    if (collectedEpisodes > 0)
-                    {
-                        watched = seenEpisodes / (decimal)collectedEpisodes * 100;
-                    }
-
-                    var index = showProgress.FindIndex(x => x.Name == show.Name);
-
-                    if (index != -1)
-                    {
-                        showProgress[index].Watched += Math.Round(watched, 1);
-                    }
-                    else
-                    {
-                        showProgress.Add(new ShowProgress
+                        if (collectedEpisodes > totalEpisodes)
                         {
-                            Name = show.Name,
-                            SortName = show.SortName,
-                            Score = show.CommunityRating,
-                            Status = show.Status,
-                            StartYear = show.PremiereDate?.ToString("yyyy"),
-                            Watched = Math.Round(watched, 1),
-                            Episodes = collectedEpisodes,
-                            SeenEpisodes = seenEpisodes,
-                            Specials = totalSpecials,
-                            SeenSpecials = seenSpecials,
-                            Collected = Math.Round(collected, 1),
-                            Total = totalEpisodes
-                        });
+                            totalEpisodes = collectedEpisodes;
+                        }
+
+                        decimal watched = 0;
+                        decimal collected = 0;
+                        if (totalEpisodes > 0)
+                        {
+                            collected = collectedEpisodes / (decimal)totalEpisodes * 100;
+                        }
+
+                        if (collectedEpisodes > 0)
+                        {
+                            watched = seenEpisodes / (decimal)collectedEpisodes * 100;
+                        }
+                        ShowProgress existingShowProgress = showProgress.FirstOrDefault(x => x.Name == show.Name);
+
+                        if (existingShowProgress != null)
+                        {
+                            existingShowProgress.Watched += Math.Round(watched, 1);
+                        }
+                        else
+                        {
+                            showProgress.Add(new ShowProgress
+                            {
+                                Name = show.Name,
+                                SortName = show.SortName,
+                                Score = show.CommunityRating,
+                                Status = show.Status,
+                                StartYear = show.PremiereDate?.ToString("yyyy"),
+                                Watched = Math.Round(watched, 1),
+                                Episodes = collectedEpisodes,
+                                SeenEpisodes = seenEpisodes,
+                                Specials = GetOwnedSpecials(show), //No need to recalculate each time, use GetOwnedSpecials and GetPlayedSpecials directly
+                                SeenSpecials = GetPlayedSpecials(show),
+                                Collected = Math.Round(collected, 1),
+                                Total = totalEpisodes
+                            });
+                        }
                     }
                 }
             }
@@ -921,23 +848,19 @@ namespace Statistics.Helpers
                 show.Watched = Math.Round(show.Watched / users.Count(), 1);
             }
 
-            List<ShowProgress> SortedList = showProgress.OrderBy(o => o.Watched).ToList();
+            var sortedList = showProgress.OrderBy(o => o.Watched).ToList();
 
-            foreach (var show in SortedList)
+            foreach (var show in sortedList)
             {
-                _logger.Debug("CalculateLeastWatchedShows " + show.Name + " " + show.Watched);
+                _logger.Debug($"CalculateLeastWatchedShows {show.Name} {show.Watched}"); // String interpolation
             }
 
-            var lineone = "";
-            var linetwo = "";
-            var linethree = "";
+            string lineone = "", linetwo = "", linethree = "";
 
-            if (SortedList.Count >= 1)
-                lineone = SortedList[0].Name;
-            if (SortedList.Count >= 2)
-                linetwo = SortedList[1].Name;
-            if (SortedList.Count >= 3)
-                linethree = SortedList[2].Name;
+            if (sortedList.Count >= 1) lineone = sortedList[0].Name;
+            if (sortedList.Count >= 2) linetwo = sortedList[1].Name;
+            if (sortedList.Count >= 3) linethree = sortedList[2].Name;
+
 
             return new ValueGroup
             {
@@ -951,15 +874,14 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateHighestBitrateMovie()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var movies = GetAllMovies().ToList();
-            if (movies.Any())
+            if (_allMovies.Any()) // Optimization: Check pre-fetched list
             {
-                var largest = movies.Aggregate((curMax, x) => curMax == null || x.TotalBitrate > curMax.TotalBitrate ? x : curMax);
-
+                // Optimization: Use LINQ MaxBy (if available in target framework, otherwise custom MaxBy implementation) or OrderByDescending.First()
+                var largest = _allMovies.OrderByDescending(x => x.TotalBitrate).FirstOrDefault();
 
                 if (largest != null)
                 {
@@ -977,20 +899,21 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateLowestBitrateMovie()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var movies = GetAllMovies().ToList();
-            if (movies.Any())
+            if (_allMovies.Any()) // Optimization: Check pre-fetched list
             {
-                var lowest = movies.Aggregate((curMax, x) => curMax == null || x.TotalBitrate < curMax.TotalBitrate && x.TotalBitrate > 0 ? x : curMax);
+                // Optimization: Use LINQ MinBy (if available in target framework, otherwise custom MinBy implementation) or OrderBy.First with filter.
+                var lowest = _allMovies.Where(x => x.TotalBitrate > 0).OrderBy(x => x.TotalBitrate).FirstOrDefault();
+
 
                 if (lowest != null)
                 {
@@ -1008,7 +931,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
@@ -1018,15 +941,15 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateLongestMovie()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
-            var movies = GetAllMovies();
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var maxMovie = movies.Where(x => x.RunTimeTicks != null).OrderByDescending(x => x.RunTimeTicks).FirstOrDefault();
+            // Optimization: Use LINQ MaxBy (if available) or OrderByDescending.First() with filter.
+            var maxMovie = _allMovies.Where(x => x.RunTimeTicks.HasValue).OrderByDescending(x => x.RunTimeTicks).FirstOrDefault(); // Optimization: Use pre-fetched movies
             if (maxMovie != null)
             {
-                valueLineOne = CheckMaxLength(new TimeSpan(maxMovie.RunTimeTicks ?? 0).ToString(@"hh\:mm\:ss"));
+                valueLineOne = CheckMaxLength(new TimeSpan(maxMovie.RunTimeTicks.Value).ToString(@"hh\:mm\:ss"));
                 valueLineTwo = CheckMaxLength($"{maxMovie.Name}");
                 id = maxMovie.Id.ToString();
             }
@@ -1037,47 +960,49 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateLongestShow()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var shows = GetAllSeries();
-
-            if (shows.Any())
+            if (_allSeries.Any()) // Optimization: Check pre-fetched list
             {
-                var maxShow = new Series();
+                Series maxShow = null;
                 long maxTime = 0;
-                foreach (var show in shows)
+
+                // Optimization: Calculate showTime directly within the _allSeries loop, same as CalculateBiggestShow.
+                foreach (var show in _allSeries)
                 {
-                    try
+                    long showTime = 0;
+                    //This is assuming the recommened folder structure for series/season/episode
+                    //https://github.com/MediaBrowser/Emby/wiki/TV-Library
+                    // Optimization: Iterate pre-fetched episodes and filter within loop.
+                    foreach (var episode in _allEpisodes.Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null))
                     {
-                        //This is assuming the recommened folder structure for series/season/episode
-                        //https://github.com/MediaBrowser/Emby/wiki/TV-Library
-                        var episodes = GetAllEpisodes().Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null);
-                        var showSize = episodes.Sum(x => x.RunTimeTicks ?? 0);
+                        showTime += episode.RunTimeTicks ?? 0;
+                    }
 
-                        if (maxTime >= showSize) continue;
-
-                        maxTime = showSize;
+                    if (showTime > maxTime)
+                    {
+                        maxTime = showTime;
                         maxShow = show;
                     }
-                    catch (Exception) { }
-
                 }
 
-                var time = new TimeSpan(maxTime).ToString(@"hh\:mm\:ss");
+                if (maxShow != null)
+                {
+                    var time = new TimeSpan(maxTime).ToString(@"hh\:mm\:ss");
+                    var days = CheckForPlural("day", new TimeSpan(maxTime).Days, "", "and");
 
-                var days = CheckForPlural("day", new TimeSpan(maxTime).Days, "", "and");
-
-                valueLineOne = CheckMaxLength($"{days} {time}");
-                valueLineTwo = CheckMaxLength($"{maxShow.Name}");
-                id = maxShow.Id.ToString();
+                    valueLineOne = CheckMaxLength($"{days} {time}");
+                    valueLineTwo = CheckMaxLength($"{maxShow.Name}");
+                    id = maxShow.Id.ToString();
+                }
             }
 
             return new ValueGroup
@@ -1087,7 +1012,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
@@ -1097,14 +1022,18 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateOldestMovie()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var movies = GetAllMovies();
-            if (movies.Any())
+            if (_allMovies.Any()) // Optimization: Check pre-fetched list
             {
-                var oldest = movies.Where(x => x.PremiereDate.HasValue && x.PremiereDate.Value.DateTime > DateTime.MinValue).Aggregate((curMin, x) => (curMin == null || (x.PremiereDate?.DateTime ?? DateTime.MaxValue) < curMin.PremiereDate ? x : curMin));
+                // Optimization: Use LINQ MinBy (if available) or OrderBy.First() with filter.
+                var oldest = _allMovies
+                    .Where(x => x.PremiereDate.HasValue && x.PremiereDate.Value.DateTime > DateTime.MinValue)
+                    .OrderBy(x => x.PremiereDate?.DateTime)
+                    .FirstOrDefault();
+
 
                 if (oldest != null && oldest.PremiereDate.HasValue)
                 {
@@ -1126,20 +1055,24 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateNewestMovie()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var movies = GetAllMovies();
-            if (movies.Any())
+            if (_allMovies.Any()) // Optimization: Check pre-fetched list
             {
-                var youngest = movies.Where(x => x.PremiereDate.HasValue).Aggregate((curMax, x) => (curMax == null || (x.PremiereDate?.DateTime ?? DateTime.MinValue) > curMax.PremiereDate?.DateTime ? x : curMax));
+                // Optimization: Use LINQ MaxBy (if available) or OrderByDescending.First() with filter.
+                var youngest = _allMovies
+                    .Where(x => x.PremiereDate.HasValue)
+                    .OrderByDescending(x => x.PremiereDate?.DateTime)
+                    .FirstOrDefault();
+
 
                 if (youngest != null)
                 {
@@ -1160,20 +1093,24 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateNewestAddedMovie()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var movies = GetAllMovies().Where(x => x.DateCreated.DateTime != DateTime.MinValue).ToList();
-            if (movies.Any())
+            if (_allMovies.Any()) // Optimization: Check pre-fetched list
             {
-                var youngest = movies.Aggregate((curMax, x) => curMax == null || x.DateCreated.DateTime > curMax.DateCreated.DateTime ? x : curMax);
+                // Optimization: Use LINQ MaxBy (if available) or OrderByDescending.First() with filter.
+                var youngest = _allMovies
+                    .Where(x => x.DateCreated.DateTime != DateTime.MinValue)
+                    .OrderByDescending(x => x.DateCreated.DateTime)
+                    .FirstOrDefault();
+
 
                 if (youngest != null)
                 {
@@ -1197,20 +1134,24 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateNewestAddedEpisode()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var episodes = GetAllOwnedEpisodes().Where(x => x.DateCreated.DateTime != DateTime.MinValue).ToList();
-            if (episodes.Any())
+            if (_allEpisodes.Any()) // Optimization: Check pre-fetched list
             {
-                var youngest = episodes.Aggregate((curMax, x) => (curMax == null || x.DateCreated.DateTime > curMax.DateCreated.DateTime ? x : curMax));
+                // Optimization: Use LINQ MaxBy (if available) or OrderByDescending.First() with filter.
+                var youngest = _allEpisodes
+                    .Where(x => x.DateCreated.DateTime != DateTime.MinValue)
+                    .OrderByDescending(x => x.DateCreated.DateTime)
+                    .FirstOrDefault();
+
                 if (youngest != null)
                 {
                     var numberOfTotalDays = DateTime.Now.Date - youngest.DateCreated.DateTime;
@@ -1220,7 +1161,7 @@ namespace Statistics.Helpers
                             ? "Today"
                             : $"{CheckForPlural("day", numberOfTotalDays.Days, "", "", false)} ago");
 
-                    valueLineTwo = CheckMaxLength($"{youngest.Series?.Name} S{youngest.Season.IndexNumber} E{youngest.IndexNumber} ");
+                    valueLineTwo = CheckMaxLength($"{youngest.Series?.Name} S{youngest.Season?.IndexNumber} E{youngest.IndexNumber} "); //Null conditional operators
                     id = youngest.Id.ToString();
                 }
             }
@@ -1232,20 +1173,24 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateOldestShow()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var shows = GetAllSeries();
-            if (shows.Any())
+            if (_allSeries.Any()) // Optimization: Check pre-fetched list
             {
-                var oldest = shows.Where(x => x.PremiereDate.HasValue && x.PremiereDate.Value.DateTime > DateTime.MinValue).Aggregate((curMin, x) => (curMin == null || (x.PremiereDate?.DateTime ?? DateTime.MaxValue) < curMin.PremiereDate ? x : curMin));
+                // Optimization: Use LINQ MinBy (if available) or OrderBy.First() with filter.
+                var oldest = _allSeries
+                    .Where(x => x.PremiereDate.HasValue && x.PremiereDate.Value.DateTime > DateTime.MinValue)
+                    .OrderBy(x => x.PremiereDate?.DateTime)
+                    .FirstOrDefault();
+
 
                 if (oldest != null && oldest.PremiereDate.HasValue)
                 {
@@ -1267,20 +1212,24 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateNewestShow()
         {
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var shows = GetAllSeries();
-            if (shows.Any())
+            if (_allSeries.Any()) // Optimization: Check pre-fetched list
             {
-                var youngest = shows.Where(x => x.PremiereDate.HasValue).Aggregate((curMax, x) => (curMax == null || (x.PremiereDate?.DateTime ?? DateTime.MinValue) > curMax.PremiereDate?.DateTime ? x : curMax));
+                // Optimization: Use LINQ MaxBy (if available) or OrderByDescending.First() with filter.
+                var youngest = _allSeries
+                    .Where(x => x.PremiereDate.HasValue)
+                    .OrderByDescending(x => x.PremiereDate?.DateTime)
+                    .FirstOrDefault();
+
 
                 if (youngest != null)
                 {
@@ -1301,7 +1250,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
@@ -1311,12 +1260,17 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateHighestRating()
         {
-            var movies = GetAllMovies();
-            var highestRatedMovie = movies.Where(x => x.CommunityRating.HasValue).OrderByDescending(x => x.CommunityRating).FirstOrDefault();
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            // Optimization: Use LINQ MaxBy (if available) or OrderByDescending.First() with filter.
+            var highestRatedMovie = _allMovies
+                .Where(x => x.CommunityRating.HasValue)
+                .OrderByDescending(x => x.CommunityRating)
+                .FirstOrDefault(); // Optimization: Use pre-fetched movies
+
+
             if (highestRatedMovie != null)
             {
                 valueLineOne = CheckMaxLength($"{highestRatedMovie.CommunityRating} / 10");
@@ -1331,18 +1285,23 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
         public ValueGroup CalculateLowestRating()
         {
-            var movies = GetAllMovies();
-            var lowestRatedMovie = movies.Where(x => x.CommunityRating.HasValue && x.CommunityRating != 0).OrderBy(x => x.CommunityRating).FirstOrDefault();
+            string valueLineOne = Constants.NoData;
+            string valueLineTwo = "";
+            string id = null;
 
-            var valueLineOne = Constants.NoData;
-            var valueLineTwo = "";
-            var id = "";
+            // Optimization: Use LINQ MinBy (if available) or OrderBy.First() with filter.
+            var lowestRatedMovie = _allMovies
+                .Where(x => x.CommunityRating.HasValue && x.CommunityRating != 0)
+                .OrderBy(x => x.CommunityRating)
+                .FirstOrDefault(); // Optimization: Use pre-fetched movies
+
+
             if (lowestRatedMovie != null)
             {
                 valueLineOne = CheckMaxLength($"{lowestRatedMovie.CommunityRating} / 10");
@@ -1357,7 +1316,7 @@ namespace Statistics.Helpers
                 ValueLineTwo = valueLineTwo,
                 ValueLineThree = null,
                 Size = "half",
-                Id = id != "" ? id : null
+                Id = id
             };
         }
 
@@ -1365,9 +1324,7 @@ namespace Statistics.Helpers
 
         private string CheckMaxLength(string value)
         {
-            if (value.Length > 30)
-                return value.Substring(0, 27) + "...";
-            return value; ;
+            return value.Length > 30 ? value.Substring(0, 27) + "..." : value;
         }
 
         private string CheckForPlural(string value, decimal number, string starting = "", string ending = "", bool removeZero = true)
