@@ -10,12 +10,14 @@ namespace statistics.Models.Configuration
         public decimal Watched { get; set; }
         public float? Score { get; set; }
         public SeriesStatus? Status { get; set; }
-        public int Episodes { get; set; }
+        public int TotalEpisodes { get; set; }
+        public int CollectedEpisodes { get; set; }
         public int SeenEpisodes { get; set; }
-        public int Specials { get; set; }
+        public int TotalSpecials { get; set; }
+        public int CollectedSpecials { get; set; }
         public int SeenSpecials { get; set; }
-        public decimal Collected { get; set; }
-        public decimal Total { get; set; }
+        public decimal PercentSeen { get; set; }
+        public decimal PercentCollected { get; set; }
         public string Id { get; set; }
     }
 }

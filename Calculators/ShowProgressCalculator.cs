@@ -4,14 +4,13 @@ using System.Linq;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.IO;
 using statistics.Models.Configuration;
-using Statistics.Api;
 using statistics.Calculators;
 using MediaBrowser.Model.Logging;
 using System.Threading;
 using MediaBrowser.Model.Serialization;
+using MediaBrowser.Controller.Providers;
 
 namespace Statistics.Helpers
 {
@@ -19,42 +18,24 @@ namespace Statistics.Helpers
     {
         private readonly IFileSystem _fileSystem;
         private readonly IServerApplicationPaths _serverApplicationPaths;
-        private readonly ILogger _logger;
+        private readonly IProviderManager _providerManager;
         private readonly IJsonSerializer _jsonSerializer;
 
         public bool IsCalculationFailed = false;
-        public ShowProgressCalculator(IUserManager userManager, ILibraryManager libraryManager, IUserDataManager userDataManager, IFileSystem fileSystem, IServerApplicationPaths serverApplicationPaths, ILogger logger, IJsonSerializer jsonSerializer, User user = null)
-            : base(userManager, libraryManager, userDataManager)
+        public ShowProgressCalculator(IUserManager userManager, ILibraryManager libraryManager, 
+                                        IUserDataManager userDataManager, IFileSystem fileSystem, 
+                                        IServerApplicationPaths serverApplicationPaths, ILogger logger, 
+                                        IJsonSerializer jsonSerializer, IProviderManager providerManager,
+                                        CancellationToken cancellationToken)
+            : base(userManager, libraryManager, userDataManager, providerManager, logger, cancellationToken)
         {
             _fileSystem = fileSystem;
             _serverApplicationPaths = serverApplicationPaths;
-            User = user;
-            _logger = logger;
+            _providerManager = providerManager;
             _jsonSerializer = jsonSerializer;
          }
 
-        public List<UpdateShowModel> CalculateTotalEpisodes(IEnumerable<string> showIds, CancellationToken cancellationToken)
-        {
-            var result = new List<UpdateShowModel>();
-            var provider = new TheTvDbProvider(_fileSystem, _serverApplicationPaths, _logger, _jsonSerializer);
-
-            try
-            {
-                foreach (var showId in showIds)
-                {
-                    var total = provider.CalculateEpisodeCount(showId, cancellationToken).Result;
-                    result.Add(new UpdateShowModel(showId, total));
-                }
-            }
-            catch (Exception)
-            {
-                IsCalculationFailed = true;
-            }
-            
-            return result;
-        }
-
-        public List<ShowProgress> CalculateShowProgress(UpdateModel tvdbData)
+        public List<ShowProgress> CalculateShowProgress(CancellationToken cancellationToken)
         {
             if (User == null)
                 return null;
@@ -64,20 +45,27 @@ namespace Statistics.Helpers
 
             foreach (var show in showList)
             {
-                var totalSpecials = GetOwnedSpecials(show);
-                var seenSpecials = GetPlayedSpecials(show);
-                var totalEpisodes = tvdbData.IdList.FirstOrDefault(x => x.ShowId == show.GetProviderId(MetadataProviders.Tvdb))?.Count ?? 0 - (totalSpecials > 0 ? totalSpecials : 0);
-                var collectedEpisodes = GetOwnedEpisodesCount(show);
+                var totalSpecials = _tolalSpecialsPerSeries.TryGetValue(show.Id, out int specials) ? specials : 0;
+                var collectedSpecials = _collectedSpecialsPerSeries.TryGetValue(show.Id, out int _collectedSpecials) ? _collectedSpecials : 0;
+                var totalEpisodes = _totalEpisodesPerSeries.TryGetValue(show.Id, out int episodes) ? episodes : 0; 
+                var collectedEpisodes = _collectedEpisodesPerSeries.TryGetValue(show.Id, out int collected) ? collected : 0;
                 var seenEpisodes = GetPlayedEpisodeCount(show);
 
-                if (collectedEpisodes > totalEpisodes)
-                    totalEpisodes = collectedEpisodes;
+                if( collectedEpisodes > totalEpisodes && totalEpisodes > 0)
+                {
+                    collectedEpisodes = totalEpisodes;
+                }
+
+                if(seenEpisodes > collectedEpisodes && collectedEpisodes > 0)
+                {
+                    seenEpisodes = collectedEpisodes;
+                }
 
                 decimal watched = 0;
-                decimal collected = 0;
+                decimal collectedPercent = 0;
                 if (totalEpisodes > 0)
                 {
-                    collected = collectedEpisodes / (decimal)totalEpisodes * 100;
+                    collectedPercent = collectedEpisodes / (decimal)totalEpisodes * 100;
                 }
 
                 if (seenEpisodes > 0)
@@ -92,13 +80,14 @@ namespace Statistics.Helpers
                     Score = show.CommunityRating,
                     Status = show.Status,
                     StartYear = show.PremiereDate?.ToString("yyyy"),
-                    Watched = Math.Round(watched, 1),
-                    Episodes = collectedEpisodes,
+                    TotalEpisodes = totalEpisodes,
+                    CollectedEpisodes = collectedEpisodes,
                     SeenEpisodes = seenEpisodes,
-                    Specials = totalSpecials,
-                    SeenSpecials = seenSpecials,
-                    Collected = Math.Round(collected, 1),
-                    Total = totalEpisodes,
+                    PercentSeen = Math.Round(Math.Min(watched, 100), 0),
+                    TotalSpecials = totalSpecials,
+                    CollectedSpecials = collectedSpecials,
+                    SeenSpecials = GetPlayedSpecials(show),
+                    PercentCollected = Math.Round(Math.Min(collectedPercent, 100), 0),
                     Id = show.Id.ToString()
                 });
             }

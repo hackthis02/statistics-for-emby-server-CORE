@@ -2,7 +2,6 @@
 using MediaBrowser.Model.Plugins;
 using statistics.Models;
 using statistics.Models.Configuration;
-using Statistics.Api;
 
 namespace statistics.Configuration
 {
@@ -11,7 +10,6 @@ namespace statistics.Configuration
         public PluginConfiguration()
         {
             UserStats = new List<UserStat>();
-            TotalEpisodeCounts = new UpdateModel();
         }
         public List<UserStat> UserStats { get; set; }
 
@@ -49,7 +47,5 @@ namespace statistics.Configuration
         public string ServerId { get; set; }
         public bool enableHyperlinks { get; set; }
         public MovieQualityObj MovieQualityItems { get; set; }
-
-        public UpdateModel TotalEpisodeCounts { get; set; }
     }
 }

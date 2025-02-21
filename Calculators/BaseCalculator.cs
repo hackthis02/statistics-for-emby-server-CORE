@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Emby.Media.Common.Extensions;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 
 namespace statistics.Calculators
@@ -21,20 +26,66 @@ namespace statistics.Calculators
         private IEnumerable<Episode> _ownedEpisodeCache;
         private IEnumerable<Episode> _viewedEpisodeCache;
 
-
+        protected readonly Dictionary<Guid, int> _totalEpisodesPerSeries = new Dictionary<Guid, int>();
+        protected readonly Dictionary<Guid, int> _collectedEpisodesPerSeries = new Dictionary<Guid, int>();
+        protected readonly Dictionary<Guid, int> _tolalSpecialsPerSeries = new Dictionary<Guid, int>();
+        protected readonly Dictionary<Guid, int> _collectedSpecialsPerSeries = new Dictionary<Guid, int>();
 
         public readonly IUserManager UserManager;
         public readonly ILibraryManager LibraryManager;
         public readonly IUserDataManager UserDataManager;
+        public readonly IProviderManager ProviderManager;
+        public readonly ILogger _logger;
         public User User;
 
 
         protected BaseCalculator(IUserManager userManager, ILibraryManager libraryManager,
-            IUserDataManager userDataManager)
+            IUserDataManager userDataManager, IProviderManager providerManager, ILogger Logger, CancellationToken cancellationToken)
         {
             UserManager = userManager;
             LibraryManager = libraryManager;
             UserDataManager = userDataManager;
+            ProviderManager = providerManager;
+            _logger = Logger;
+
+            foreach (var series in GetAllSeries())
+            {
+                if (!_collectedEpisodesPerSeries.ContainsKey(series.Id))
+                {
+                    _collectedEpisodesPerSeries.Add(series.Id, GetOwnedEpisodesCount(series));
+                }
+                else
+                {
+                    _collectedEpisodesPerSeries[series.Id] = (_collectedEpisodesPerSeries.TryGetValue(series.Id, out int collected) ? collected : 0) + GetOwnedEpisodesCount(series);
+                }
+
+                if (!_collectedSpecialsPerSeries.ContainsKey(series.Id))
+                {
+                    _collectedSpecialsPerSeries.Add(series.Id, GetOwnedSpecials(series));
+                }
+                else
+                {
+                    _collectedSpecialsPerSeries[series.Id] = (_collectedSpecialsPerSeries.TryGetValue(series.Id, out int collected) ? collected : 0) + GetOwnedSpecials(series);
+                }
+
+                if (!_totalEpisodesPerSeries.ContainsKey(series.Id))
+                {
+                    _totalEpisodesPerSeries.Add(series.Id, GetAllEpisodesCount(series, cancellationToken).Result);
+                }
+                else
+                {
+                    _totalEpisodesPerSeries[series.Id] = (_totalEpisodesPerSeries.TryGetValue(series.Id, out int collected) ? collected : 0) + GetAllEpisodesCount(series, cancellationToken).Result;
+                }
+
+                if (!_tolalSpecialsPerSeries.ContainsKey(series.Id))
+                {
+                    _tolalSpecialsPerSeries.Add(series.Id, GetAllSpeacialsCount(series, cancellationToken).Result);
+                }
+                else
+                {
+                    _tolalSpecialsPerSeries[series.Id] = (_tolalSpecialsPerSeries.TryGetValue(series.Id, out int collected) ? collected : 0) + GetAllSpeacialsCount(series, cancellationToken).Result;
+                }
+            }
         }
 
         #region Helpers
@@ -108,11 +159,29 @@ namespace statistics.Calculators
                 Recursive = true,
                 Parent = show,
                 IsSpecialSeason = false,
-                IsVirtualItem = false
+                IsVirtualItem = false,
             };
 
-            var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => e.PremiereDate <= DateTime.Now || e.PremiereDate == null);
+            var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => ((e.SortParentIndexNumber ?? e.ParentIndexNumber) != 0) && (e.PremiereDate <= DateTime.Now || e.PremiereDate != null));
+            foreach(var episode in episodes)
+            {
+                _logger.Debug($"Episode {episode.Name} - {episode.IndexNumber} - {episode.IndexNumberEnd} - {episode.ParentIndexNumber} - {episode.SortParentIndexNumber} - {episode.PresentationUniqueKey}");
+            }
             return episodes.Sum(r => (r.IndexNumberEnd == null || r.IndexNumberEnd < r.IndexNumber ? r.IndexNumber : r.IndexNumberEnd) - r.IndexNumber + 1) ?? 0;
+        }
+
+        protected async Task<int> GetAllEpisodesCount(Series show, CancellationToken cancellationToken)
+        {
+            var libraryOptions = LibraryManager.GetLibraryOptions(show);
+            var allEpisodes = await ProviderManager.GetAllEpisodes(show, libraryOptions, cancellationToken).ConfigureAwait(false);
+            return allEpisodes.Where(e => ((e.SortParentIndexNumber ?? e.ParentIndexNumber) != 0) && e.PremiereDate <= DateTime.Now).Count();
+        }
+
+        protected async Task<int> GetAllSpeacialsCount(Series show, CancellationToken cancellationToken)
+        {
+            var libraryOptions = LibraryManager.GetLibraryOptions(show);
+            var allEpisodes = await ProviderManager.GetAllEpisodes(show, libraryOptions, cancellationToken).ConfigureAwait(false);
+            return allEpisodes.Where(e => (e.SortParentIndexNumber ?? e.ParentIndexNumber) == 0).Count();
         }
 
         protected int GetPlayedEpisodeCount(Series show)
@@ -123,11 +192,12 @@ namespace statistics.Calculators
                 Recursive = true,
                 Parent = show,
                 IsSpecialSeason = false,
+                MaxPremiereDate = DateTime.Now,
                 IsVirtualItem = false,
                 IsPlayed = true
             };
 
-            var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => e.PremiereDate <= DateTime.Now || e.PremiereDate == null);
+            var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => (e.SortParentIndexNumber ?? e.ParentIndexNumber) != 0);
             return episodes.Sum(r => (r.IndexNumberEnd ?? r.IndexNumber) - r.IndexNumber + 1) ?? 0;
         }
 
@@ -139,11 +209,14 @@ namespace statistics.Calculators
                 Recursive = true,
                 Parent = show,
                 IsSpecialSeason = true,
+                MaxPremiereDate = DateTime.Now,
                 IsVirtualItem = false
             };
 
+            //var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => (e.SortParentIndexNumber ?? e.ParentIndexNumber) == 0);
+            //return episodes.Sum(r => (r.IndexNumberEnd ?? r.IndexNumber) - r.IndexNumber + 1) ?? 0;
             var seasons = LibraryManager.GetItemList(query).OfType<Season>();
-            return seasons.Sum(x => x.GetChildren(User).Count(e => e.PremiereDate <= DateTime.Now || e.PremiereDate == null));
+            return seasons.Sum(x => x.GetChildren(User).OfType<Episode>().Sum(r => (r.IndexNumberEnd ?? r.IndexNumber) - r.IndexNumber + 1) ?? 0);
         }
 
         protected int GetPlayedSpecials(Series show)
@@ -155,11 +228,13 @@ namespace statistics.Calculators
                 Parent = show,
                 IsSpecialSeason = true,
                 MaxPremiereDate = DateTime.Now,
-                IsVirtualItem = false
+                IsVirtualItem = false,
             };
 
+            //var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => (e.SortParentIndexNumber ?? e.ParentIndexNumber) == 0);
+            //return episodes.Sum(r => (r.IndexNumberEnd ?? r.IndexNumber) - r.IndexNumber + 1) ?? 0;
             var seasons = LibraryManager.GetItemList(query).OfType<Season>();
-            return seasons.Sum(x => x.GetChildren(User).Count(e => (e.PremiereDate <= DateTime.Now || e.PremiereDate == null) && e.IsPlayed(User)));
+            return seasons.Sum(x => x.GetChildren(User).Count(e => e.IsPlayed(User)));
         }
 
         #endregion

@@ -6,9 +6,8 @@ using System.Threading.Tasks;
 using MediaBrowser.Common;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Entities;
+using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
@@ -32,12 +31,13 @@ namespace Statistics.ScheduledTasks
         private readonly IUserManager _userManager;
         private IApplicationHost _appHost;
         private readonly IJsonSerializer _jsonSerializer;
+        private readonly IProviderManager _providerManager;
 
         public CalculateStatsTask(ILogManager logger,
             IUserManager userManager,
             IUserDataManager userDataManager,
             ILibraryManager libraryManager, IFileSystem fileSystem, IJsonSerializer jsonSerializer,
-            IServerApplicationPaths serverApplicationPaths, IApplicationHost appHost)
+            IServerApplicationPaths serverApplicationPaths, IApplicationHost appHost, IProviderManager providerManager)
         {
             _logger = logger.GetLogger("Statistics");
             _libraryManager = libraryManager;
@@ -47,6 +47,7 @@ namespace Statistics.ScheduledTasks
             _fileSystem = fileSystem;
             _serverApplicationPaths = serverApplicationPaths;
             _appHost = appHost;
+            _providerManager = providerManager;
         }
 
         private static PluginConfiguration PluginConfiguration => Plugin.Instance.Configuration;
@@ -54,7 +55,7 @@ namespace Statistics.ScheduledTasks
 
         string IScheduledTask.Key => "StatisticsCalculateStatsTask";
 
-        string IScheduledTask.Description => "Task that will calculate statistics needed for the statistics plugin for all users.";
+        string IScheduledTask.Description => "Task that will calculate statistics needed for the statistics plugin for all users. (Ideal for weekly/non-daily schedule)";
 
         string IScheduledTask.Category => "Statistics";
 
@@ -82,20 +83,23 @@ namespace Statistics.ScheduledTasks
             numComplete++;
             progress.Report(percentPerUser * numComplete);
 
-            CalculateTotalEpisodes(cancellationToken);
-
             numComplete++;
             progress.Report(percentPerUser * numComplete);
 
             var activeUsers = new Dictionary<string, RunTime>();
 
+            var calculator = new Calculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _logger, _providerManager, cancellationToken);
+            var ShowProgresses = new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _serverApplicationPaths,
+                                                            _logger, _jsonSerializer, _providerManager, cancellationToken);
 
             foreach (var user in users)
             {
                 await Task.Run(() =>
                 {
-                    using (var calculator = new Calculator(user, _userManager, _libraryManager, _userDataManager, _fileSystem, _logger, PluginConfiguration.TotalEpisodeCounts))
+                    using (calculator)
                     {
+                        calculator.User = user;
+                        ShowProgresses.User = user;
                         var overallTime = calculator.CalculateOverallTime();
                         activeUsers.Add(user.Name, new RunTime(overallTime.Raw));
                         var stat = new UserStat
@@ -128,9 +132,7 @@ namespace Statistics.ScheduledTasks
                                 calculator.CalculateShowTime(false),
                                 calculator.CalculateLastSeenShows()
                             },
-                            ShowProgresses =
-                                new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _serverApplicationPaths, _logger, _jsonSerializer, user)
-                                    .CalculateShowProgress(PluginConfiguration.TotalEpisodeCounts)
+                            ShowProgresses = ShowProgresses.CalculateShowProgress(cancellationToken)
                         };
                         PluginConfiguration.UserStats.Add(stat);
                     }
@@ -140,8 +142,9 @@ namespace Statistics.ScheduledTasks
                 progress.Report(percentPerUser * numComplete);
             }
 
-            using (var calculator = new Calculator(null, _userManager, _libraryManager, _userDataManager, _fileSystem, _logger, PluginConfiguration.TotalEpisodeCounts))
+            using (calculator)
             {
+                calculator.User = null;
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
                 PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
                 PluginConfiguration.MostActiveUsers = calculator.CalculateMostActiveUsers(activeUsers);
@@ -161,7 +164,6 @@ namespace Statistics.ScheduledTasks
                 PluginConfiguration.LowestBitrateMovie = calculator.CalculateLowestBitrateMovie();
 
                 PluginConfiguration.TotalShows = calculator.CalculateTotalShows();
-                //PluginConfiguration.TotalOwnedEpisodes = calculator.CalculateTotalOwnedEpisodes();
                 PluginConfiguration.TotalShowStudios = calculator.CalculateTotalShowStudios();
                 PluginConfiguration.MostWatchedShows = calculator.CalculateMostWatchedShows();
                 PluginConfiguration.LeastWatchedShows = calculator.CalculateLeastWatchedShows();
@@ -178,36 +180,6 @@ namespace Statistics.ScheduledTasks
             progress.Report(percentPerUser * numComplete);
 
             Plugin.Instance.SaveConfiguration();
-        }
-
-        private void CalculateTotalEpisodes(CancellationToken cancellationToken)
-        {
-            var seriesList = _libraryManager.GetItemList(new InternalItemsQuery
-            {
-                IncludeItemTypes = new[] { typeof(Series).Name },
-                Recursive = true,
-                GroupByPresentationUniqueKey = false
-
-            }).Cast<Series>()
-            .ToList();
-
-            var seriesIdsInLibrary = seriesList
-                .Where(i => !string.IsNullOrEmpty(i.GetProviderId(MetadataProviders.Tvdb)))
-                .Select(i => i.GetProviderId(MetadataProviders.Tvdb));
-
-
-            var calculator = new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _serverApplicationPaths, _logger, _jsonSerializer);
-            FirstTvdbConnection(calculator, seriesIdsInLibrary, cancellationToken);
-
-            PluginConfiguration.TotalEpisodeCounts.LastUpdateTime = DateTime.Now.ToString("g");
-            Plugin.Instance.SaveConfiguration();
-        }
-
-        private bool FirstTvdbConnection(ShowProgressCalculator calculator, IEnumerable<string> seriesIdsInLibrary, CancellationToken cancellationToken)
-        {
-            var totals = calculator.CalculateTotalEpisodes(seriesIdsInLibrary, cancellationToken);
-            PluginConfiguration.TotalEpisodeCounts.IdList = totals;
-            return calculator.IsCalculationFailed;
         }
 
         IEnumerable<TaskTriggerInfo> IScheduledTask.GetDefaultTriggers()

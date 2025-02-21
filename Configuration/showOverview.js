@@ -156,15 +156,15 @@
                     newCell.appendChild(newText);
 
                     newCell = newRow.insertCell(cell++);
-                    newCell.className = (`center ` + calculateProgressClass(v.Watched));
-                    newText = document.createTextNode(v.SeenEpisodes + ` / ` + v.Episodes + ` (` + v.Watched + ` %)` + (v.Specials > 0 ? ` +` + v.SeenSpecials + `/` + v.Specials + ` sp` : ``));
-                    newCell.setAttribute("data-sort-value", v.Watched);
+                    newCell.className = (`center ` + calculateProgressClass(v.PercentSeen));
+                    newText = document.createTextNode(v.SeenEpisodes + ` / ` + v.CollectedEpisodes + ` (` + v.PercentSeen + ` %)` + (v.SeenSpecials > 0 ? ` +` + v.SeenSpecials + `/` + v.CollectedSpecials + ` sp` : ``));
+                    newCell.setAttribute("data-sort-value", v.PercentSeen);
                     newCell.appendChild(newText);
 
                     newCell = newRow.insertCell(cell++);
-                    newCell.className = (`center ` + calculateProgressClass(v.Collected));
-                    newText = document.createTextNode(v.Episodes + ` / ` + v.Total + ` (` + v.Collected + `%)` + (v.Specials > 0 ? ` +` + v.Specials  + ` sp` : ``));
-                    newCell.setAttribute("data-sort-value", v.Collected);
+                    newCell.className = (`center ` + calculateProgressClass(v.PercentCollected));
+                    newText = document.createTextNode(v.CollectedEpisodes + ` / ` + v.TotalEpisodes + ` (` + v.PercentCollected + `%)` + (v.CollectedSpecials > 0 ? ` +` + v.CollectedSpecials + `/` + v.TotalSpecials + ` sp` : ``));
+                    newCell.setAttribute("data-sort-value", v.PercentCollected);
                     newCell.appendChild(newText);
 
                     newCell = newRow.insertCell(cell++);
