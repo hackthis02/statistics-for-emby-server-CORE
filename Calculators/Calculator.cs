@@ -622,7 +622,6 @@ namespace Statistics.Helpers
                     double showSize = 0;
                     //This is assuming the recommened folder structure for series/season/episode
                     //https://github.com/MediaBrowser/Emby/wiki/TV-Library
-                    // Optimization: Iterate pre-fetched episodes and filter within loop.
                     foreach (var episode in _allEpisodes.Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null))
                     {
                         try
