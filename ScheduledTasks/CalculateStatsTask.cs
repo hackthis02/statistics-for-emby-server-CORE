@@ -184,7 +184,14 @@ namespace Statistics.ScheduledTasks
 
         IEnumerable<TaskTriggerInfo> IScheduledTask.GetDefaultTriggers()
         {
-            throw new NotImplementedException();
+            return new[] {
+                new TaskTriggerInfo
+                {
+                    Type = TaskTriggerInfo.TriggerWeekly,
+                    DayOfWeek = DayOfWeek.Monday,
+                    TimeOfDayTicks = TimeSpan.FromMinutes(30).Ticks
+                }
+            };
         }
     }
 }

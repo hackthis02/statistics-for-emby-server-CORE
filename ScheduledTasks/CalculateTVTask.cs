@@ -57,7 +57,7 @@ namespace statistics.ScheduledTasks
 
         string IScheduledTask.Key => "StatisticsCalculateTVTask";
 
-        string IScheduledTask.Description => "Task that will calculate statistics needed display new TV shows and users watch amount.(Ideal for daily schedule)";
+        string IScheduledTask.Description => "Task that will calculate statistics needed display new TV shows and users watch percent.(Ideal for daily schedule)";
 
         string IScheduledTask.Category => "Statistics";
 
@@ -135,7 +135,13 @@ namespace statistics.ScheduledTasks
 
         IEnumerable<TaskTriggerInfo> IScheduledTask.GetDefaultTriggers()
         {
-            throw new NotImplementedException();
+            return new[] {
+                new TaskTriggerInfo
+                {
+                    Type = TaskTriggerInfo.TriggerDaily,
+                    TimeOfDayTicks = TimeSpan.FromMinutes(15).Ticks
+                }
+            };
         }
     }
 }
