@@ -163,10 +163,6 @@ namespace statistics.Calculators
             };
 
             var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => ((e.SortParentIndexNumber ?? e.ParentIndexNumber) != 0) && (e.PremiereDate <= DateTime.Now || e.PremiereDate != null));
-            foreach(var episode in episodes)
-            {
-                _logger.Debug($"Episode {episode.Name} - {episode.IndexNumber} - {episode.IndexNumberEnd} - {episode.ParentIndexNumber} - {episode.SortParentIndexNumber} - {episode.PresentationUniqueKey}");
-            }
             return episodes.Sum(r => (r.IndexNumberEnd == null || r.IndexNumberEnd < r.IndexNumber ? r.IndexNumber : r.IndexNumberEnd) - r.IndexNumber + 1) ?? 0;
         }
 
@@ -213,8 +209,6 @@ namespace statistics.Calculators
                 IsVirtualItem = false
             };
 
-            //var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => (e.SortParentIndexNumber ?? e.ParentIndexNumber) == 0);
-            //return episodes.Sum(r => (r.IndexNumberEnd ?? r.IndexNumber) - r.IndexNumber + 1) ?? 0;
             var seasons = LibraryManager.GetItemList(query).OfType<Season>();
             return seasons.Sum(x => x.GetChildren(User).OfType<Episode>().Sum(r => (r.IndexNumberEnd ?? r.IndexNumber) - r.IndexNumber + 1) ?? 0);
         }
@@ -231,8 +225,6 @@ namespace statistics.Calculators
                 IsVirtualItem = false,
             };
 
-            //var episodes = LibraryManager.GetItemList(query).OfType<Episode>().Where(e => (e.SortParentIndexNumber ?? e.ParentIndexNumber) == 0);
-            //return episodes.Sum(r => (r.IndexNumberEnd ?? r.IndexNumber) - r.IndexNumber + 1) ?? 0;
             var seasons = LibraryManager.GetItemList(query).OfType<Season>();
             return seasons.Sum(x => x.GetChildren(User).Count(e => e.IsPlayed(User)));
         }

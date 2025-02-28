@@ -521,7 +521,7 @@ namespace Statistics.Helpers
             foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
                 _logger.Debug($"CalculateMovieQualityList {movie.Name}");
-                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle?.Split(' ')[0];
+                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle?.Split(' ')[0] ?? "Unknown";
 
                 if (!qualityMovieMap.TryGetValue(quality, out var movieList))
                 {
@@ -530,6 +530,9 @@ namespace Statistics.Helpers
                 }
                 movieList.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
                 _logger.Debug($"{quality} {qualityMovieMap.Count}");
+
+                if (quality == "Unknown")
+                    _logger.Debug($"CalculateMovieQualityList-Unknown {movie.Name}");
             }
 
             var list = qualityMovieMap.Select(pair => new MovieQuality
