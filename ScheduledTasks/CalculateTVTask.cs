@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Serialization;
 using MediaBrowser.Common;
 using MediaBrowser.Controller;
 using MediaBrowser.Controller.Library;
@@ -13,13 +12,10 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Serialization;
 using MediaBrowser.Model.Tasks;
-using MediaBrowser.Common.Configuration;
-using statistics;
 using statistics.Configuration;
 using statistics.Models.Configuration;
 using Statistics.Helpers;
 using Statistics.ViewModel;
-using MediaBrowser.Controller.Entities;
 
 namespace statistics.ScheduledTasks
 {
@@ -71,16 +67,10 @@ namespace statistics.ScheduledTasks
                 return;
             }
 
-            // clear all previously saved stats
-            PluginConfiguration.UserStats = Plugin.Instance.Configuration.UserStats;
-            if(PluginConfiguration.UserStats == null)
-            {
-                PluginConfiguration.UserStats = new List<UserStat>();
-                Plugin.Instance.SaveConfiguration();
-            }
+            PluginConfiguration.UserStats = Plugin.Instance.Configuration.UserStats ?? new List<UserStat>();
 
             // purely for progress reporting
-            var percentPerUser = 100 / (users.Count + 3);
+            var percentPerUser = 100 / (users.Count + 2);
             var numComplete = 0;
 
             PluginConfiguration.LastUpdated = DateTime.Now.ToString("g");
@@ -89,12 +79,7 @@ namespace statistics.ScheduledTasks
             numComplete++;
             progress.Report(percentPerUser * numComplete);
 
-            numComplete++;
-            progress.Report(percentPerUser * numComplete);
-
             var activeUsers = new Dictionary<string, RunTime>();
-
-            var calculator = new Calculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _logger, _providerManager, cancellationToken);
             var ShowProgresses = new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _serverApplicationPaths,
                                                             _logger, _jsonSerializer, _providerManager, cancellationToken);
 
@@ -102,10 +87,9 @@ namespace statistics.ScheduledTasks
             {
                 await Task.Run(() =>
                 {
-                    using (calculator)
+                    using (ShowProgresses)
                     {
-                        calculator.User = user;
-                        ShowProgresses.User = user;
+                        ShowProgresses.SetUser(user);
                         var stat = new UserStat
                         {
                             UserName = user.Name,

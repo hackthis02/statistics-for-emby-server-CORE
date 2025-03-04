@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Emby.Media.Common.Extensions;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
@@ -31,12 +30,12 @@ namespace statistics.Calculators
         protected readonly Dictionary<Guid, int> _tolalSpecialsPerSeries = new Dictionary<Guid, int>();
         protected readonly Dictionary<Guid, int> _collectedSpecialsPerSeries = new Dictionary<Guid, int>();
 
-        public readonly IUserManager UserManager;
-        public readonly ILibraryManager LibraryManager;
-        public readonly IUserDataManager UserDataManager;
-        public readonly IProviderManager ProviderManager;
-        public readonly ILogger _logger;
-        public User User;
+        protected readonly IUserManager UserManager;
+        protected readonly ILibraryManager LibraryManager;
+        protected readonly IUserDataManager UserDataManager;
+        protected readonly IProviderManager ProviderManager;
+        protected readonly ILogger _logger;
+        protected User User;
 
 
         protected BaseCalculator(IUserManager userManager, ILibraryManager libraryManager,

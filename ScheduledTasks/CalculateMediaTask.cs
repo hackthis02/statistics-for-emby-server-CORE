@@ -20,7 +20,7 @@ using Statistics.ViewModel;
 
 namespace Statistics.ScheduledTasks
 {
-    public class CalculateStatsTask : IScheduledTask
+    public class CalculateMediaTask : IScheduledTask
     {
         private readonly IFileSystem _fileSystem;
         private readonly ILibraryManager _libraryManager;
@@ -32,7 +32,7 @@ namespace Statistics.ScheduledTasks
         private readonly IJsonSerializer _jsonSerializer;
         private readonly IProviderManager _providerManager;
 
-        public CalculateStatsTask(ILogManager logger,
+        public CalculateMediaTask(ILogManager logger,
             IUserManager userManager,
             IUserDataManager userDataManager,
             ILibraryManager libraryManager, IFileSystem fileSystem, IJsonSerializer jsonSerializer,
@@ -50,30 +50,20 @@ namespace Statistics.ScheduledTasks
         }
 
         private static PluginConfiguration PluginConfiguration => Plugin.Instance.Configuration;
-        string IScheduledTask.Name => "Calculate statistics for all users";
+        string IScheduledTask.Name => "Calculate statistics all library media";
 
         string IScheduledTask.Key => "StatisticsCalculateStatsTask";
 
-        string IScheduledTask.Description => "Task that will calculate statistics needed for the statistics plugin for all users. (Ideal for weekly/non-daily schedule)";
+        string IScheduledTask.Description => "Task that will calculate statistics of all media in liberay. (Ideal for weekly/non-daily schedule)";
 
         string IScheduledTask.Category => "Statistics";
 
-        async Task IScheduledTask.Execute(CancellationToken cancellationToken, IProgress<double> progress)
+        Task IScheduledTask.Execute(CancellationToken cancellationToken, IProgress<double> progress)
         {
-            var users = _userManager.GetUserList(new UserQuery() { EnableRemoteAccess = true }).ToList();
-
-            // No users found, so stop the task
-            if (users.Count == 0)
-            {
-                return;
-            }
-
-            // clear all previously saved stats
-            PluginConfiguration.UserStats = new List<UserStat>();
-            Plugin.Instance.SaveConfiguration();
+            PluginConfiguration.UserStats = Plugin.Instance.Configuration.UserStats ?? new List<UserStat>();
 
             // purely for progress reporting
-            var percentPerUser = 100 / (users.Count + 5);
+            var percentPerUser = 100 / 4;
             var numComplete = 0;
 
             PluginConfiguration.LastUpdated = DateTime.Now.ToString("g");
@@ -82,70 +72,14 @@ namespace Statistics.ScheduledTasks
             numComplete++;
             progress.Report(percentPerUser * numComplete);
 
-            var activeUsers = new Dictionary<string, RunTime>();
 
             var calculator = new Calculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _logger, _providerManager, cancellationToken);
-            var ShowProgresses = new ShowProgressCalculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _serverApplicationPaths,
-                                                            _logger, _jsonSerializer, _providerManager, cancellationToken);
-            numComplete++;
-            progress.Report(percentPerUser * numComplete);
-
-            foreach (var user in users)
-            {
-                await Task.Run(() =>
-                {
-                    using (calculator)
-                    {
-                        calculator.SetUser(user);
-                        ShowProgresses.SetUser(user);
-                        var overallTime = calculator.CalculateOverallTime();
-                        activeUsers.Add(user.Name, new RunTime(overallTime.Raw));
-                        var stat = new UserStat
-                        {
-                            UserName = user.Name,
-                            OverallStats = new List<ValueGroup>
-                            {
-                                overallTime,
-                                calculator.CalculateOverallTime(false)
-                            },
-                            MovieStats = new List<ValueGroup>
-                            {
-                                calculator.CalculateTotalMovies(),
-                                calculator.CalculateTotalBoxsets(),
-                                calculator.CalculateTotalMoviesWatched(),
-                                calculator.CalculateFavoriteYears(),
-                                calculator.CalculateFavoriteMovieGenres(),
-                                calculator.CalculateMovieTime(),
-                                calculator.CalculateMovieTime(false),
-                                calculator.CalculateLastSeenMovies()
-                            },
-                            ShowStats = new List<ValueGroup>
-                            {
-                                calculator.CalculateTotalShows(),
-                                calculator.CalculateTotalOwnedEpisodes(),
-                                calculator.CalculateTotalEpiosodesWatched(),
-                                calculator.CalculateTotalFinishedShows(),
-                                calculator.CalculateFavoriteShowGenres(),
-                                calculator.CalculateShowTime(),
-                                calculator.CalculateShowTime(false),
-                                calculator.CalculateLastSeenShows()
-                            },
-                            ShowProgresses = ShowProgresses.CalculateShowProgress(cancellationToken)
-                        };
-                        PluginConfiguration.UserStats.Add(stat);
-                    }
-                }, cancellationToken);
-
-                numComplete++;
-                progress.Report(percentPerUser * numComplete);
-            }
-
+           
             using (calculator)
             {
                 calculator.SetUser(null);
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
                 PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
-                PluginConfiguration.MostActiveUsers = calculator.CalculateMostActiveUsers(activeUsers);
                 PluginConfiguration.TotalUsers = calculator.CalculateTotalUsers();
 
                 numComplete++;
@@ -184,6 +118,7 @@ namespace Statistics.ScheduledTasks
             progress.Report(percentPerUser * numComplete);
 
             Plugin.Instance.SaveConfiguration();
+            return Task.CompletedTask;
         }
 
         IEnumerable<TaskTriggerInfo> IScheduledTask.GetDefaultTriggers()
@@ -192,7 +127,7 @@ namespace Statistics.ScheduledTasks
                 new TaskTriggerInfo
                 {
                     Type = TaskTriggerInfo.TriggerWeekly,
-                    DayOfWeek = DayOfWeek.Monday,
+                    DayOfWeek = DayOfWeek.Sunday,
                     TimeOfDayTicks = TimeSpan.FromMinutes(30).Ticks
                 }
             };

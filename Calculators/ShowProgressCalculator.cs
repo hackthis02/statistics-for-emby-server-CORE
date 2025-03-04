@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using MediaBrowser.Controller;
-using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.IO;
 using statistics.Models.Configuration;
