@@ -82,11 +82,11 @@ namespace Statistics.Helpers
                     TotalEpisodes = totalEpisodes,
                     CollectedEpisodes = collectedEpisodes,
                     SeenEpisodes = seenEpisodes,
-                    PercentSeen = Math.Round(Math.Min(watched, 100), 0),
+                    PercentSeen = Math.Floor(Math.Min(watched, 100)),
                     TotalSpecials = totalSpecials,
                     CollectedSpecials = collectedSpecials,
                     SeenSpecials = GetPlayedSpecials(show),
-                    PercentCollected = Math.Round(Math.Min(collectedPercent, 100), 0),
+                    PercentCollected = Math.Floor(Math.Min(collectedPercent, 100)),
                     Id = show.Id.ToString()
                 });
             }

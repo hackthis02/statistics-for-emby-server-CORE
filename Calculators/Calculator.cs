@@ -625,7 +625,7 @@ namespace Statistics.Helpers
                     double showSize = 0;
                     //This is assuming the recommened folder structure for series/season/episode
                     //https://github.com/MediaBrowser/Emby/wiki/TV-Library
-                    foreach (var episode in _allEpisodes.Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null))
+                    foreach (var episode in _allEpisodes.Where(x => x != null && x?.GetParent()?.GetParent()?.Id == show.Id && x.Path != null))
                     {
                         try
                         {
@@ -637,7 +637,6 @@ namespace Statistics.Helpers
                             _logger.Error($"CalculateBiggestShow-Error getting file info for episode {episode.Name} in show {show.Name}: {e.Message}", e);
                         }
                     }
-
 
                     if (showSize > maxSize)
                     {
@@ -960,7 +959,7 @@ namespace Statistics.Helpers
                     long showTime = 0;
                     //This is assuming the recommened folder structure for series/season/episode
                     //https://github.com/MediaBrowser/Emby/wiki/TV-Library
-                    foreach (var episode in _allEpisodes.Where(x => x.GetParent().GetParent().Id == show.Id && x.Path != null))
+                    foreach (var episode in _allEpisodes.Where(x => x != null && x?.GetParent()?.GetParent()?.Id == show.Id && x.Path != null))
                     {
                         showTime += episode.RunTimeTicks ?? 0;
                     }
