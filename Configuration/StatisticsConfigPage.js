@@ -25,12 +25,15 @@
             html += `<div style="width: 100%;"><div class="statCard-stats-title">` +
                 v.Title +
                 `</div><div class="statCard-stats-number">` +
-                v.ValueLineOne +
-                `</div><div class="statCard-stats-number">` +
-                v.ValueLineTwo
-            if (v.ValueLineThree !== undefined)
-                html += `</div><div class="statCard-stats-number">` +
+                v.ValueLineOne + `</div>`
+            if (v.ValueLineTwo !== undefined ) {
+                html += `<div class="statCard-stats-number">` +
+                    v.ValueLineTwo + `</div>`
+            }
+            if (v.ValueLineThree !== undefined) {
+                html += `<div class="statCard-stats-number">` +
                     v.ValueLineThree + `</div>`
+            }
             html += `</div></div></div></div></div>`;
 
             return html;
