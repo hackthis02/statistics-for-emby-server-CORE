@@ -52,9 +52,9 @@ namespace statistics.Configuration
 
         public bool enableHyperlinks { get; set; }
         public bool showUnknownDVProfileCount { get; set; }
-        public MovieCollection MovieQualityItems { get; set; }
-        public MovieCollection MovieDVProfileItems { get; set; }
-        public MovieCollection EpisodeDVProfileItems { get; set; }
+        public MediaItemCollection MovieQualityItems { get; set; }
+        public MediaItemCollection MovieDVProfileItems { get; set; }
+        public MediaItemCollection EpisodeDVProfileItems { get; set; }
         
         public static bool IsUnknownDolbyProfile(string profile)
         {

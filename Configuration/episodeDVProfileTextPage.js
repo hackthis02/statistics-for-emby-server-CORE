@@ -15,11 +15,11 @@
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.EpisodeDVProfileItems.Count; h < len; h++) {
                     var innerText = ``
-                    var currEpisodeGroup = config.EpisodeDVProfileItems.Movies[h];
+                    var currEpisodeGroup = config.EpisodeDVProfileItems.MediaItems[h];
                     if (!config.showUnknownDVProfileCount && config.EpisodeDVProfileItems.IsUnknownDolbyProfile)
                         continue;
 
-                    currEpisodeGroup.Movies.forEach((v) => {
+                    currEpisodeGroup.MediaItems.forEach((v) => {
                         innerText += makeTable(v, config.ServerId);
                     });
 
@@ -31,10 +31,10 @@
             });
         };
 
-        function makeTable(movie, serverId) {
+        function makeTable(episode, serverId) {
             var html = `<tr>`;
-            html += `<td><a is="emby-linkbutton" href="/item?id=` + movie.Id + `&serverId=` + serverId + `">` + movie.Name + `</a></td>`;
-            html += `<td>` + movie.Year + `</td>`;
+            html += `<td><a is="emby-linkbutton" href="/item?id=` + episode.Id + `&serverId=` + serverId + `">` + episode.Title + `</a></td>`;
+            html += `<td>` + episode.Year + `</td>`;
             return html + `</tr>`;
         }
 

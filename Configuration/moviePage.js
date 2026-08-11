@@ -15,9 +15,9 @@
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.MovieQualityItems.Count; h < len; h++) {
                     var innerText = ``
-                    var currMovieGroup = config.MovieQualityItems.Movies[h];
+                    var currMovieGroup = config.MovieQualityItems.MediaItems[h];
 
-                    currMovieGroup.Movies.forEach((v) => {
+                    currMovieGroup.MediaItems.forEach((v) => {
                         var imageUrl = ApiClient.getImageUrl(v.Id, { type: "Primary", quality: 90 });
                         innerText += `<a is="emby-linkbutton" href="/item?id=` + v.Id + `&serverId=` + config.ServerId + `"><img src="` + imageUrl + `" height="200px" alt="` + v.Name + `" /></a>`;
                     });

@@ -18,8 +18,8 @@
 	</Target>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Configuration\dvProfileTextPage.html" />
-		<EmbeddedResource Include="Configuration\dvProfileTextPage.js" />
+		<EmbeddedResource Include="Configuration\movieDVProfileTextPage.html" />
+		<EmbeddedResource Include="Configuration\movieDVProfileTextPage.js" />
 
 		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.html" />
 		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.js" />

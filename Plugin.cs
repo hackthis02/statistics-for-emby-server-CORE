@@ -56,12 +56,12 @@ namespace statistics
                 new PluginPageInfo
                 {
                     Name = "StatisticsMovieDVProfileText",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.dvProfileTextPage.html"
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieDVProfileTextPage.html"
                 },
                 new PluginPageInfo
                 {
                     Name = "StatisticsMovieDVProfileTextJS",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.dvProfileTextPage.js"
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieDVProfileTextPage.js"
                 },
                 new PluginPageInfo
                 {

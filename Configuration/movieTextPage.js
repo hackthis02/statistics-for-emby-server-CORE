@@ -15,9 +15,9 @@
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.MovieQualityItems.Count; h < len; h++) {
                     var innerText = ``
-                    var currMovieGroup = config.MovieQualityItems.Movies[h];
+                    var currMovieGroup = config.MovieQualityItems.MediaItems[h];
 
-                    currMovieGroup.Movies.forEach((v) => {
+                    currMovieGroup.MediaItems.forEach((v) => {
                         innerText += makeTable(v, config.ServerId);
                     });
                     
@@ -31,7 +31,7 @@
 
         function makeTable(movie, serverId) {
             var html = `<tr>`;
-            html += `<td><a is="emby-linkbutton" href="/item?id=` + movie.Id + `&serverId=` + serverId + `">` + movie.Name + `</a></td>`;
+            html += `<td><a is="emby-linkbutton" href="/item?id=` + movie.Id + `&serverId=` + serverId + `">` + movie.Title + `</a></td>`;
             html += `<td>` + movie.Year + `</td>`;
             return html + `</tr>`;
         }

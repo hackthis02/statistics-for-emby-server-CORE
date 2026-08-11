@@ -640,9 +640,9 @@ namespace Statistics.Helpers
             };
         }
 
-        public MovieCollection CalculateMovieQualityList()
+        public MediaItemCollection CalculateMovieQualityList()
         {
-            var qualityMovieMap = new Dictionary<string, List<statistics.Models.Movie>>();
+            var qualityMovieMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
 
             foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
@@ -651,34 +651,34 @@ namespace Statistics.Helpers
 
                 if (!qualityMovieMap.TryGetValue(quality, out var movieList))
                 {
-                    movieList = new List<statistics.Models.Movie>();
+                    movieList = new List<statistics.Models.MediaItem>();
                     qualityMovieMap[quality] = movieList;
                 }
-                movieList.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
+                movieList.Add(new statistics.Models.MediaItem { Id = movie.Id.ToString(), Title = movie.Name, Year = movie.ProductionYear });
                 _logger.Debug($"{quality} {qualityMovieMap.Count}");
 
                 if (quality == "Unknown")
                     _logger.Debug($"CalculateMovieQualityList-Unknown {movie.Name}");
             }
 
-            var list = qualityMovieMap.Select(pair => new MovieGroup
+            var list = qualityMovieMap.Select(pair => new MediaItemGroup
             {
                 Title = pair.Key,
-                Movies = pair.Value,
+                MediaItems = pair.Value,
                 IsUnknownDolbyProfile = false
             }).ToList();
 
 
-            return new MovieCollection()
+            return new MediaItemCollection()
             {
                 Count = list.Count(),
-                Movies = list
+                MediaItems = list
             };
         }
 
-        public MovieCollection CalculateEpisodeDVProfileList()
+        public MediaItemCollection CalculateEpisodeDVProfileList()
         {
-            var dvProfileMap = new Dictionary<string, List<statistics.Models.Movie>>();
+            var dvProfileMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
 
             foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.Series.SortName))
             {
@@ -693,20 +693,20 @@ namespace Statistics.Helpers
 
                 if (!dvProfileMap.TryGetValue(dvProfile, out var movieList))
                 {
-                    movieList = new List<statistics.Models.Movie>();
+                    movieList = new List<statistics.Models.MediaItem>();
                     dvProfileMap[dvProfile] = movieList;
                 }
                 var episodeName = episode.SeriesName + " - S" + episode.ParentIndexNumber.ToString().PadLeft(2, '0') + "E" + episode.IndexNumber.ToString().PadLeft(2, '0') + ": " + episode.Name;
-                movieList.Add(new statistics.Models.Movie { Id = episode.Id.ToString(), Name = episodeName, Year = episode.ProductionYear });
+                movieList.Add(new statistics.Models.MediaItem { Id = episode.Id.ToString(), Title = episodeName, Year = episode.ProductionYear });
                 _logger.Debug($"CalculateEpisodeDVProfileList - {dvProfile} #{dvProfileMap[dvProfile].Count}");
             }
 
             _logger.Debug($"CalculateEpisodeDVProfileList - Converting to Movie Collection");
 
-            var list = dvProfileMap.Select(pair => new MovieGroup
+            var list = dvProfileMap.Select(pair => new MediaItemGroup
             {
                 Title = pair.Key,
-                Movies = pair.Value,
+                MediaItems = pair.Value,
                 IsUnknownDolbyProfile = statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(pair.Key)
             }).ToList();
             
@@ -715,16 +715,16 @@ namespace Statistics.Helpers
                 _logger.Debug($"CalculateEpisodeDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
             }
 
-            return new MovieCollection()
+            return new MediaItemCollection()
             {
                 Count = list.Count(),
-                Movies = list
+                MediaItems = list
             };
         }
 
-        public MovieCollection CalculateMovieDVProfileList()
+        public MediaItemCollection CalculateMovieDVProfileList()
         {
-            var dvProfileMap = new Dictionary<string, List<statistics.Models.Movie>>();
+            var dvProfileMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
 
             foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
@@ -739,17 +739,17 @@ namespace Statistics.Helpers
 
                 if (!dvProfileMap.TryGetValue(dvProfile, out var movieList))
                 {
-                    movieList = new List<statistics.Models.Movie>();
+                    movieList = new List<statistics.Models.MediaItem>();
                     dvProfileMap[dvProfile] = movieList;
                 }
-                movieList.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
+                movieList.Add(new statistics.Models.MediaItem { Id = movie.Id.ToString(), Title = movie.Name, Year = movie.ProductionYear });
                 _logger.Debug($"CalculateMovieDVProfileList - {dvProfile} #{dvProfileMap[dvProfile].Count}");
             }
 
-            var list = dvProfileMap.Select(pair => new MovieGroup
+            var list = dvProfileMap.Select(pair => new MediaItemGroup
             {
                 Title = pair.Key,
-                Movies = pair.Value,
+                MediaItems = pair.Value,
                 IsUnknownDolbyProfile = statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(pair.Key)
             }).ToList();
 
@@ -758,10 +758,10 @@ namespace Statistics.Helpers
                 _logger.Debug($"CalculateMovieDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
             }
 
-            return new MovieCollection()
+            return new MediaItemCollection()
             {
                 Count = list.Count(),
-                Movies = list
+                MediaItems = list
             };
         }
         #endregion

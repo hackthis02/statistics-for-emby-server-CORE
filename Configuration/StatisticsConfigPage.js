@@ -166,6 +166,18 @@
                     Dashboard.navigate(href);
                 });
 
+            view.querySelector("#GoToEpisodeList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeList");
+                    Dashboard.navigate(href);
+                });
+
+            view.querySelector("#GoToEpisodeTextList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeListText");
+                    Dashboard.navigate(href);
+                });
+
             view.querySelector("#GoToShowProgress").addEventListener("click",
                 function () {
                     Dashboard.navigate(Dashboard.getConfigurationPageUrl("StatisticsShowOverview"));

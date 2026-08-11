@@ -2,23 +2,23 @@
 
 namespace statistics.Models
 {
-    public class Movie
+    public class MediaItem
     {
-        public string Name { get; set; }
+        public string Title { get; set; }
         public string Id { get; set; }
         public int? Year { get; set; }
     }
 
-    public class MovieGroup
+    public class MediaItemGroup
     {
-        public List<Movie> Movies { get; set; }
+        public List<MediaItem> MediaItems{ get; set; }
         public string Title { get; set; }
         public bool IsUnknownDolbyProfile { get; set; } = false;
     }
 
-    public class MovieCollection
+    public class MediaItemCollection
     {
         public int Count { get; set; }
-        public List<MovieGroup> Movies { get; set; }
+        public List<MediaItemGroup> MediaItems { get; set; }
     }
 }
