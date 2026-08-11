@@ -72,16 +72,33 @@
                 view.querySelector("#showHyperLinks").checked = config.showHyperLinks;
                 view.querySelector("#showUnknownDVProfileCount").checked = config.showUnknownDVProfileCount;
 
-                view.querySelector("#lastRunInfo").innerHTML = "Last statistics finished at <b> " + config.LastUpdated + "</b> - Version <b>" + config.Version + "</b> - Build Date - <b>" + config.BuildDate + "</b>";
                 if (config.LastUpdated === undefined) {
                     Dashboard.alert({
                         message:
                             "No configuration found, please run the statistics task on the Scheduled Tasks page and come back for the results."
                     });
-                    view.querySelector("#GoToUserStats", page).css("display", "none");
-                    view.querySelector("#GoToShowProgress", page).css("display", "none");
+                    view.querySelector("#lastRunInfo").display = "none";
+
+                    view.querySelector(`#GoToUserStats`).disabled = true;
+
+                    view.querySelector(`#GoToMovieDVProfileTextList`).disabled = true;
+                    view.querySelector(`#GoToEpisodeDVProfileTextList`).disabled = true;
+
+                    view.querySelector(`#GoToMovieCodec`).disabled = true;
+                    view.querySelector(`#GoToMovieCodecText`).disabled = true;
+
+                    view.querySelector(`#GoToEpisodeCodec`).disabled = true;
+                    view.querySelector(`#GoToEpisodeCodecText`).disabled = true;
+
+                    view.querySelector(`#GoToShowProgress`).disabled = true;
+
+                    view.querySelector(`#showHyperLinks`).disabled = true;
+                    view.querySelector(`#showUnknownDVProfileCount`).disabled = true;
+
                     Dashboard.hideLoadingMsg();
                 } else {
+                    view.querySelector("#lastRunInfo").innerHTML = "Last statistics finished at <b> " + config.LastUpdated + "</b> - Version <b>" + config.Version + "</b> - Build Date - <b>" + config.BuildDate + "</b>";
+
                     view.querySelector("#statsIntro").innerHTML = "This plugin will calculate overall and user-based statistics"
                         + "from this Emby server instance. Keep in mind that viewing an item multiple times will not increase the"
                         + "watched count. It will only count as 1.";
@@ -98,7 +115,11 @@
                     view.querySelector("#generalStat").innerHTML = (generalStat);
 
                     var dvProfileStats = "";
-                    dvProfileStats += createStat(config.DolbyVisionProfiles, view, undefined, "dvProfileStats");
+                    if (config.showUnknownDVProfileCount) {
+                        dvProfileStats += createStat(config.DolbyVisionProfilesWithUnknown, view, undefined, "dvProfileStats");
+                    } else {
+                        dvProfileStats += createStat(config.DolbyVisionProfiles, view, undefined, "dvProfileStats");
+                    }
                     view.querySelector("#dvProfileStats").innerHTML = (dvProfileStats);
 
                     var movieStat = "";
@@ -197,7 +218,7 @@
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                         config.showUnknownDVProfileCount = view.querySelector("#showUnknownDVProfileCount").checked;
                         ApiClient.updatePluginConfiguration(pluginId, config);
-
+                        loadStats(view);
                     });
                 }
             );

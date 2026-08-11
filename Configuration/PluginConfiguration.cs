@@ -18,6 +18,8 @@ namespace statistics.Configuration
         public ValueGroup MovieQualities { get; set; }
         public ValueGroup MovieCodecs { get; set; }
         public ValueGroup DolbyVisionProfiles { get; set; }
+        public ValueGroup DolbyVisionProfilesWithUnknown { get; set; }
+        
 
         public ValueGroup MostActiveUsers { get; set; }
         public ValueGroup TotalUsers { get; set; }

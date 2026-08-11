@@ -67,7 +67,7 @@ namespace Statistics.ScheduledTasks
             var numComplete = 0;
 
             PluginConfiguration.LastUpdated = DateTime.Now.ToString("g");
-            PluginConfiguration.Version = Plugin.Instance.Version.ToString( 4 );
+            PluginConfiguration.Version = Plugin.Instance.Version.ToString(4);
             PluginConfiguration.BuildDate = BuildDateInfo.GetBuildDate().ToString();
             PluginConfiguration.ServerId = _appHost.SystemId;
 
@@ -81,7 +81,9 @@ namespace Statistics.ScheduledTasks
                 calculator.SetUser(null);
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
                 PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
-                PluginConfiguration.DolbyVisionProfiles = calculator.CalculateDVProfileInfo( PluginConfiguration.showUnknownDVProfileCount );
+                PluginConfiguration.DolbyVisionProfiles = calculator.CalculateDVProfileInfo(false);
+                PluginConfiguration.DolbyVisionProfilesWithUnknown = calculator.CalculateDVProfileInfo(true);
+
                 PluginConfiguration.TotalUsers = calculator.CalculateTotalUsers();
 
                 numComplete++;

@@ -147,7 +147,8 @@ namespace Statistics.ScheduledTasks
                 calculator.SetUser(null);
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
                 PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
-                PluginConfiguration.DolbyVisionProfiles = calculator.CalculateDVProfileInfo(PluginConfiguration.showUnknownDVProfileCount);
+                PluginConfiguration.DolbyVisionProfiles = calculator.CalculateDVProfileInfo(false);
+                PluginConfiguration.DolbyVisionProfilesWithUnknown = calculator.CalculateDVProfileInfo(true);
                 PluginConfiguration.MostActiveUsers = calculator.CalculateMostActiveUsers(activeUsers);
                 PluginConfiguration.TotalUsers = calculator.CalculateTotalUsers();
 
