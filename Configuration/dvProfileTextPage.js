@@ -14,14 +14,18 @@
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.MovieDVProfileItems.Count; h < len; h++) {
-                    var innerText = ``
                     var currMovieGroup = config.MovieDVProfileItems.Movies[h];
+                    if (!config.showUnknownDVProfileCount && currMovieGroup.IsUnknownDolbyProfile)
+                        continue;
 
+                    var innerText = ``
                     currMovieGroup.Movies.forEach((v) => {
                         innerText += makeTable(v, config.ServerId);
                     });
 
-                    var currHtml = `<h2 id = "` + currMovieGroup.Title + `Title">` + currMovieGroup.Title + `</h2><div><table id="` + currMovieGroup.Title + `">` + innerText + `</table></div>`;
+                    var currHtml = `<h2 id = "` + currMovieGroup.Title + `Title">` + currMovieGroup.Title + `</h2>`;
+                    currHtml += `<div><table id="` + currMovieGroup.Title + `">` + innerText + `</table></div>`;
+
                     view.querySelector("#pagestart").innerHTML += currHtml;
                 }
 
