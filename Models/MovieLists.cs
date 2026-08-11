@@ -13,6 +13,7 @@ namespace statistics.Models
     {
         public List<Movie> Movies { get; set; }
         public string Title { get; set; }
+        public bool IsUnknownDolbyProfile { get; set; } = false;
     }
 
     public class MovieCollection
