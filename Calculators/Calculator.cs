@@ -470,6 +470,9 @@ namespace Statistics.Helpers
                 return "";
 
             var dvProfile = mediaStream.ExtendedVideoSubTypeDescription;
+            if (dvProfile.ToLower() == "none")
+                return "";
+
             return dvProfile;
         }
 
@@ -612,6 +615,44 @@ namespace Statistics.Helpers
             }
 
             var list = qualityMovieMap.Select(pair => new MovieGroup
+            {
+                Title = pair.Key,
+                Movies = pair.Value
+            }).ToList();
+
+
+            return new MovieCollection()
+            {
+                Count = list.Count(),
+                Movies = list
+            };
+        }
+
+        public MovieCollection CalculateTVDVProfileList()
+        {
+            var dvProfileMap = new Dictionary<string, List<statistics.Models.Movie>>();
+
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                _logger.Debug($"CalculateTVDVProfileList {episode.Name}");
+                var mediaStream = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+
+                var dvProfile = getDolbyVisionProfile(mediaStream);
+                if (dvProfile == null || dvProfile == "")
+                {
+                    continue;
+                }
+
+                if (!dvProfileMap.TryGetValue(dvProfile, out var movieList))
+                {
+                    movieList = new List<statistics.Models.Movie>();
+                    dvProfileMap[dvProfile] = movieList;
+                }
+                movieList.Add(new statistics.Models.Movie { Id = episode.Id.ToString(), Name = episode.Name, Year = episode.ProductionYear });
+                _logger.Debug($"{dvProfile} {dvProfileMap.Count}");
+            }
+
+            var list = dvProfileMap.Select(pair => new MovieGroup
             {
                 Title = pair.Key,
                 Movies = pair.Value
