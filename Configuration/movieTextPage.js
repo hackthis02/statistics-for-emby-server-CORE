@@ -22,8 +22,9 @@
                     });
                     
                     var currHtml = `<h2 id = "` + currMovieGroup.Title + `Title">` + currMovieGroup.Title + `</h2><div><table id="` + currMovieGroup.Title + `">` + innerText + `</table></div>`;
-                    view.querySelector(`#pagestart`) .innerHTML += currHtml;
+                    view.querySelector("#pagestart") .innerHTML += currHtml;
                 }
+
                 Dashboard.hideLoadingMsg();
             });
         };

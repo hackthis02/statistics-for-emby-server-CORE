@@ -156,6 +156,12 @@
                     Dashboard.navigate(href);
                 });
 
+            view.querySelector("#GoToDVProfileTextList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsDVProfileListText");
+                    Dashboard.navigate(href);
+                });
+
             view.querySelector("#GoToMovieList").addEventListener("click",
                 function () {
                     var href = Dashboard.getConfigurationPageUrl("StatisticsMovieList");

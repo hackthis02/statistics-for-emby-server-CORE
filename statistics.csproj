@@ -21,6 +21,9 @@
 		<EmbeddedResource Include="Configuration\dvProfilePage.html" />
 		<EmbeddedResource Include="Configuration\dvProfilePage.js" />
 
+		<EmbeddedResource Include="Configuration\dvProfileTextPage.html" />
+		<EmbeddedResource Include="Configuration\dvProfileTextPage.js" />
+
 		<EmbeddedResource Include="Configuration\moviePage.html" />
 		<EmbeddedResource Include="Configuration\moviePage.js" />
 
