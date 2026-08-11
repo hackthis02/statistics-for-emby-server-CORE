@@ -13,22 +13,29 @@
             Dashboard.showLoadingMsg();
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                for (var h = 0, len = config.MovieQualityItems.Count; h < len; h++) {
+                for (var h = 0, len = config.MovieDVProfileItems.Count; h < len; h++) {
+                    var currGroup = config.MovieDVProfileItems.MediaItemGroups[h];
+                    if (!config.showUnknownDVProfileCount && currGroup.IsUnknownDolbyProfile)
+                        continue;
+
                     var innerText = ``
-                    config.MovieQualityItems.Movies[h].Movies.forEach((v) => {
+                    currGroup.MediaItems.forEach((v) => {
                         innerText += makeTable(v, config.ServerId);
                     });
 
-                    view.querySelector(`#pagestart`)
-                        .innerHTML += (`<h2 id = "` + config.MovieQualityItems.Movies[h].Title + `Title">` + config.MovieQualityItems.Movies[h].Title + `</h2><div><table id="` + config.MovieQualityItems.Movies[h].Title + `">` + innerText + `</table></div>`);
+                    var currHtml = `<h2 id = "` + currGroup.Title + `Title">` + currGroup.Title + `</h2>` +
+                                   `<div><table id="` + currGroup.Title + `">` + innerText + `</table></div>`;
+
+                    view.querySelector("#pagestart").innerHTML += currHtml;
                 }
+
                 Dashboard.hideLoadingMsg();
             });
         };
 
         function makeTable(movie, serverId) {
             var html = `<tr>`;
-            html += `<td><a is="emby-linkbutton" href="/item?id=` + movie.Id + `&serverId=` + serverId + `">` + movie.Name + `</a></td>`;
+            html += `<td><a is="emby-linkbutton" href="/item?id=` + movie.Id + `&serverId=` + serverId + `">` + movie.Title + `</a></td>`;
             html += `<td>` + movie.Year + `</td>`;
             return html + `</tr>`;
         }

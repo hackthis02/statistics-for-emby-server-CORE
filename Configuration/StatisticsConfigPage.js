@@ -10,69 +10,58 @@
         function showInfo(text, title) {
             Dashboard.alert({ message: text, title: title });
         }
+        function createStat(valueGroup, view, serverId = undefined, rootDivName="") {
+            if (!valueGroup || !view)
+                return "";
 
-        function createStat(v, view) {
-            var html = `<div class="col ` +
-                v.Size +
-                `"><div class="statCard"><div class="statCard-content">`;
+            var html = `<div class="col {valueGroup.Size}"`;
+            if (rootDivName != "") {
+                html += ` id="${rootDivName}"`;
+            }
+            html += "\">";
+            html += "<div class=\"statCard\">";
+            html += "<div class=\"statCard-content\">";
 
-            if (v.ExtraInformation !== undefined) {
-                var id = v.Title.replace(/\s/g, '');
-                html += `<div id="` + id + `" class=\"infoBlock\"><i class=\"md-icon\">info</i></div>`;
+            if (valueGroup.ExtraInformation !== undefined) {
+                var id = valueGroup.Title.replace(/\s/g, "");
+                html += `<div id="${id}" class="infoBlock"><i class="md-icon">info</i></div>`;
 
-                dynamicbuttons.push({ id: id, info: v.ExtraInformation, title: v.Title });
+                dynamicbuttons.push({ id: id, info: valueGroup.ExtraInformation, title: valueGroup.Title });
             }
-            html += `<div style="width: 100%;"><div class="statCard-stats-title">` +
-                v.Title +
-                `</div><div class="statCard-stats-number">` +
-                v.ValueLineOne + `</div>`
-            if (v.ValueLineTwo !== undefined ) {
-                html += `<div class="statCard-stats-number">` +
-                    v.ValueLineTwo + `</div>`
+
+            var showImage = (serverId !== undefined) && (valueGroup.Id !== undefined);
+            if (showImage) {
+                var imageUrl = ApiClient.getImageUrl(valueGroup.Id, { type: "Primary", quality: 90 });
+                html += `<a is="emby-linkbutton" href="/item?id=${valueGroup.Id}&serverId=${serverId}"><img src="${imageUrl}" height="105px"/></a>`;    
+                html += "<div>";
+
+                if (valueGroup.Title !== undefined) {
+                    html += `<div class="statCard-stats-title-left">${valueGroup.Title}</div>`;
+                }
             }
-            if (v.ValueLineThree !== undefined) {
-                html += `<div class="statCard-stats-number">` +
-                    v.ValueLineThree + `</div>`
+            else if (valueGroup.Title !== undefined) {
+                html += "<div style=\"width: 100%;\">";
+                html += `<div class="statCard-stats-title">${valueGroup.Title}</div>`;
             }
-            html += `</div></div></div></div></div>`;
+            if (valueGroup.ValueLineOne !== undefined) {
+                html += `<div class="statCard-stats-number">${valueGroup.ValueLineOne}</div>`
+            }
+
+            if (valueGroup.ValueLineTwo !== undefined) {
+                html += `<div class="statCard-stats-number">${valueGroup.ValueLineTwo}</div>`
+            }
+
+            if (valueGroup.ValueLineThree !== undefined) {
+                html += `<div class="statCard-stats-number">${valueGroup.ValueLineThree}</div>`
+            }
+
+            html += "</div>";
+            html += "</div>";
+            html += "</div>";
+            html += "</div>";
+            html += "</div>"; // not sure why this is here, but it was in the original code.
 
             return html;
-        };
-
-        function createStatWithPoster(v, i, view) {
-            if (v) {
-                var html = `<div class="col ` +
-                    v.Size +
-                    `"><div class="statCard"><div class="statCard-content">`;
-
-                if (v.ExtraInformation !== undefined) {
-                    var id = v.Title.replace(/\s/g, "");
-                    html += `<div id="` + id + `" class=\"infoBlock\"><i class=\"md-icon\">info</i></div>`;
-
-                    dynamicbuttons.push({ id: id, info: v.ExtraInformation, title: v.Title });
-                }
-                if (v.Id !== undefined) {
-                    var imageUrl = ApiClient.getImageUrl(v.Id, { type: "Primary", quality: 90 });
-                    html += `<a is="emby-linkbutton" href="/item?id=` + v.Id + `&serverId=` + i + `"><img src="` + imageUrl + `" height="105px"></a>`
-                    html += `<div>`
-                }
-
-                html += `<div class="statCard-stats-title-left">` +
-                    v.Title +
-                    `</div><div class="statCard-stats-number">` +
-                    v.ValueLineOne +
-                    `</div><div class="statCard-stats-number">` +
-                    v.ValueLineTwo +
-                    `</div></div></div></div></div>`;
-
-                if (v.Id !== undefined) {
-                    html += `</div>`;
-                }
-
-                return html;
-            } else {
-                return "";
-            }
         };
 
         function loadStats(view) {
@@ -80,65 +69,93 @@
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
 
-                view.querySelector(`#showHyperLinks`).checked = config.enableHyperlinks;
-                
+                view.querySelector("#showHyperLinks").checked = config.showHyperLinks;
+                view.querySelector("#showUnknownDVProfileCount").checked = config.showUnknownDVProfileCount;
+
                 if (config.LastUpdated === undefined) {
                     Dashboard.alert({
                         message:
-                            `No configuration found, please run the statistics task on the Scheduled Tasks page and come back for the results.`
+                            "No configuration found, please run the statistics task on the Scheduled Tasks page and come back for the results."
                     });
-                    view.querySelector(`#GoToUserStats`, page).css("display", "none");
-                    view.querySelector(`#GoToShowProgress`, page).css("display", "none");
+                    view.querySelector("#lastRunInfo").display = "none";
+
+                    view.querySelector(`#GoToUserStats`).disabled = true;
+
+                    view.querySelector(`#GoToMovieDVProfileTextList`).disabled = true;
+                    view.querySelector(`#GoToEpisodeDVProfileTextList`).disabled = true;
+
+                    view.querySelector(`#GoToMovieCodec`).disabled = true;
+                    view.querySelector(`#GoToMovieCodecText`).disabled = true;
+
+                    view.querySelector(`#GoToEpisodeCodec`).disabled = true;
+                    view.querySelector(`#GoToEpisodeCodecText`).disabled = true;
+
+                    view.querySelector(`#GoToShowProgress`).disabled = true;
+
+                    view.querySelector(`#showHyperLinks`).disabled = true;
+                    view.querySelector(`#showUnknownDVProfileCount`).disabled = true;
+
                     Dashboard.hideLoadingMsg();
                 } else {
-                    view.querySelector(`#statsIntro`).innerHTML = (`This plugin will calculate overall and user-based statistics 
-                    from this Emby server instance. Keep in mind that viewing an item multiple times will not increase the
-                    "watched" count. It will only count as 1. Last statistics finished at <b>` + config.LastUpdated + `</b>`);
+                    view.querySelector("#lastRunInfo").innerHTML = "Last statistics finished at <b> " + config.LastUpdated + "</b> - Version <b>" + config.Version + "</b> - Build Date - <b>" + config.BuildDate + "</b>";
 
-                    var generalStat = ``;
+                    view.querySelector("#statsIntro").innerHTML = "This plugin will calculate overall and user-based statistics"
+                        + "from this Emby server instance. Keep in mind that viewing an item multiple times will not increase the"
+                        + "watched count. It will only count as 1.";
 
+                    var userStats = createStat(config.MostActiveUsers, view);
+                    userStats += createStat(config.TotalUsers, view);
+
+                    view.querySelector("#userStats").innerHTML = (userStats);
+
+                    var generalStat = "";
                     generalStat += createStat(config.MovieQualities, view);
                     generalStat += createStat(config.MovieCodecs, view);
-                    generalStat += createStat(config.MostActiveUsers, view);
-                    generalStat += createStat(config.TotalUsers, view);
 
-                    view.querySelector(`#generalStat`).innerHTML = (generalStat);
+                    view.querySelector("#generalStat").innerHTML = (generalStat);
 
-                    var movieStat = ``;
+                    var dvProfileStats = "";
+                    if (config.showUnknownDVProfileCount) {
+                        dvProfileStats += createStat(config.DolbyVisionProfilesWithUnknown, view, undefined, "dvProfileStats");
+                    } else {
+                        dvProfileStats += createStat(config.DolbyVisionProfiles, view, undefined, "dvProfileStats");
+                    }
+                    view.querySelector("#dvProfileStats").innerHTML = (dvProfileStats);
 
+                    var movieStat = "";
                     movieStat += createStat(config.TotalMovies, view);
                     movieStat += createStat(config.TotalBoxsets, view);
                     movieStat += createStat(config.TotalMovieStudios, view);
-                    movieStat += createStatWithPoster(config.BiggestMovie, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.LongestMovie, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.NewestAddedMovie, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.OldestMovie, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.NewestMovie, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.HighestRating, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.LowestRating, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.HighestBitrateMovie, config.ServerId, view);
-                    movieStat += createStatWithPoster(config.LowestBitrateMovie, config.ServerId, view);
+                    movieStat += createStat(config.BiggestMovie, view, config.ServerId);
+                    movieStat += createStat(config.LongestMovie, view, config.ServerId);
+                    movieStat += createStat(config.NewestAddedMovie, view, config.ServerId);
+                    movieStat += createStat(config.OldestMovie, view, config.ServerId);
+                    movieStat += createStat(config.NewestMovie, view, config.ServerId);
+                    movieStat += createStat(config.HighestRating, view, config.ServerId);
+                    movieStat += createStat(config.LowestRating, view, config.ServerId);
+                    movieStat += createStat(config.HighestBitrateMovie, view, config.ServerId);
+                    movieStat += createStat(config.LowestBitrateMovie, view, config.ServerId);
 
-                    view.querySelector(`#movieStat`).innerHTML = (movieStat);
+                    view.querySelector("#movieStat").innerHTML = (movieStat);
 
-                    var showStat = ``;
+                    var showStat = "";
 
                     showStat += createStat(config.TotalShows, view);
                     showStat += createStat(config.TotalShowStudios, view);
                     showStat += createStat(config.LeastWatchedShows, view);
                     showStat += createStat(config.MostWatchedShows, view);
-                    showStat += createStatWithPoster(config.BiggestShow, config.ServerId, view);
-                    showStat += createStatWithPoster(config.LongestShow, config.ServerId, view);
-                    showStat += createStatWithPoster(config.OldestShow, config.ServerId, view);
-                    showStat += createStatWithPoster(config.NewestShow, config.ServerId, view);
-                    showStat += createStatWithPoster(config.NewestAddedEpisode, config.ServerId, view);
+                    showStat += createStat(config.BiggestShow, view, config.ServerId);
+                    showStat += createStat(config.LongestShow, view, config.ServerId);
+                    showStat += createStat(config.OldestShow, view, config.ServerId);
+                    showStat += createStat(config.NewestShow, view, config.ServerId);
+                    showStat += createStat(config.NewestAddedEpisode, view, config.ServerId);
 
-                    view.querySelector(`#showStat`).innerHTML = (showStat);
-                    
+                    view.querySelector("#showStat").innerHTML = (showStat);
+
                     Dashboard.hideLoadingMsg();
 
                     dynamicbuttons.forEach((v) => {
-                        view.querySelector(`#` + v.id).addEventListener("click",
+                        view.querySelector("#" + v.id).addEventListener("click",
                             function () {
                                 showInfo(v.info, v.title);
                             });
@@ -152,37 +169,73 @@
             dynamicbuttons = [];
             loadStats(view);
 
-            view.querySelector(`#GoToUserStats`).addEventListener(`click`,
+            view.querySelector("#GoToUserStats").addEventListener("click",
                 function () {
                     var href = Dashboard.getConfigurationPageUrl("StatisticsUserBased");
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector(`#GoToMovieList`).addEventListener(`click`,
+            view.querySelector("#GoToMovieCodec").addEventListener("click",
                 function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieList");
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieCodec");
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector(`#GoToMovieTextList`).addEventListener(`click`,
+            view.querySelector("#GoToMovieCodecText").addEventListener("click",
                 function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieListText");
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieCodecText");
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector(`#GoToShowProgress`).addEventListener(`click`,
+            view.querySelector("#GoToEpisodeCodec").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeCodec");
+                    Dashboard.navigate(href);
+                });
+
+            view.querySelector("#GoToEpisodeCodecText").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeCodecText");
+                    Dashboard.navigate(href);
+                });
+
+            view.querySelector("#GoToShowProgress").addEventListener("click",
                 function () {
                     Dashboard.navigate(Dashboard.getConfigurationPageUrl("StatisticsShowOverview"));
                 });
 
-            view.querySelector(`#showHyperLinks`).addEventListener(`click`,
+            view.querySelector("#showHyperLinks").addEventListener("click",
                 function () {
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                        config.enableHyperlinks = view.querySelector(`#showHyperLinks`).checked;
+                        config.enableHyperlinks = view.querySelector("#showHyperLinks").checked;
                         ApiClient.updatePluginConfiguration(pluginId, config);
                     });
-                    }
-                );
+                }
+            );
+
+            view.querySelector("#showUnknownDVProfileCount").addEventListener("click",
+                function () {
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.showUnknownDVProfileCount = view.querySelector("#showUnknownDVProfileCount").checked;
+                        ApiClient.updatePluginConfiguration(pluginId, config);
+                        loadStats(view);
+                    });
+                }
+            );
+
+            
+            view.querySelector("#GoToMovieDVProfileTextList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieDVProfileText");
+                    Dashboard.navigate(href);
+                });
+
+            view.querySelector("#GoToEpisodeDVProfileTextList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeDVProfileText");
+                    Dashboard.navigate(href);
+                });
+
         }
 
 

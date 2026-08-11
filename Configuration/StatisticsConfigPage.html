@@ -4,34 +4,56 @@
             <h1>Statistics plugin</h1>
             <p name="statsIntro" id="statsIntro">
             </p>
+            <p name="lastRunInfo" id="lastRunInfo">
+            </p>
 
-            <h2>General statistics</h2>
+            <h2>User statistics</h2>
+            <div class="statRow" name="userStats" id="userStats"></div>
             <div style="max-width: 900px;">
                 <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToUserStats" id="GoToUserStats">View user-based statistics</button>
             </div>
+
+            <h2>General Media statistics</h2>
             <div class="statRow" name="generalStat" id="generalStat"></div>
 
             <h2>Movie statistics</h2>
-            <div style="max-width: 900px;">
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieList" id="GoToMovieList">View movie list</button>
-            </div>
-            <div style="max-width: 900px;">
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieTextList" id="GoToMovieTextList">View movie list (text-based)</button>
+            <div style="max-width: 900px; display: flex; gap: 10px; ">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieCodec" id="GoToMovieCodec">View movie codec list</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieCodecText" id="GoToMovieCodecText">View movie codec list (text-based)</button>
             </div>
 
             <div class="statRow" name="movieStat" id="movieStat"></div>
             <div style="clear: both;"></div>
 
             <h2>Show Statistics</h2>
+            <div style="max-width: 900px; display: flex; gap: 10px; ">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToEpisodeCodec" id="GoToEpisodeCodec">View episode codec list</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToEpisodeCodecText" id="GoToEpisodeCodecText">View episode codec list (text-based)</button>
+            </div>
             <div style="max-width: 900px;">
                 <label class="emby-checkbox-label">
                     <input id="showHyperLinks" is="emby-checkbox" class="emby-checkbox" type="checkbox">
                     <span class="checkboxLabel">Enable show hyperlinks</span>
                 </label>
-                <button style="max-width: 75%;" is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToShowProgress" id="GoToShowProgress">View user-based show progress</button>                
+                <button style="max-width: 75%;" is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToShowProgress" id="GoToShowProgress">View user-based show progress</button>
             </div>
             <div class="statRow" name="showStat" id="showStat"></div>
             <div style="clear: both;"></div>
+
+            <h2>Dolby Vision Profile Statistics</h2>
+            <label class="emby-checkbox-label">
+                <input id="showUnknownDVProfileCount" is="emby-checkbox" class="emby-checkbox" type="checkbox">
+                <span class="checkboxLabel">Show non-HEVC Dolby Vision profiles?</span>
+            </label>
+
+            <div class="statRow" name="dvProfileStats" id="dvProfileStats"></div>
+            <div style="max-width: 900px; display: flex; gap: 10px;">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieDVProfileTextList" id="GoToMovieDVProfileTextList">View Dolby Vision Profile list (Movies)</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToEpisodeDVProfileTextList" id="GoToEpisodeDVProfileTextList">View Dolby Vision Profile list (TV Episodes)</button>
+            </div>
+            <div style="clear: both;"></div>
+
+
         </div>
     </div>
 

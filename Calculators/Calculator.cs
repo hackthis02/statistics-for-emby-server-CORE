@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -27,7 +28,7 @@ namespace Statistics.Helpers
         private readonly IUserDataManager _userDataManager;
 
         public Calculator(IUserManager userManager, ILibraryManager libraryManager,
-            IUserDataManager userDataManager, IFileSystem fileSystem, ILogger logger, 
+            IUserDataManager userDataManager, IFileSystem fileSystem, ILogger logger,
             IProviderManager providerManager, CancellationToken cancellationToken)
             : base(userManager, libraryManager, userDataManager, providerManager, logger, cancellationToken)
         {
@@ -37,7 +38,7 @@ namespace Statistics.Helpers
             _allMovies = GetAllMovies().ToList();
             _allSeries = GetAllSeries().ToList();
             _allEpisodes = GetAllOwnedEpisodes().ToList();
-            _allUsers = GetAllUser().ToList();           
+            _allUsers = GetAllUser().ToList();
         }
 
         #region TopYears
@@ -74,7 +75,7 @@ namespace Statistics.Helpers
                 User userToUse = User;
                 if (User == null)
                 {
-                    userToUse = _allUsers.FirstOrDefault(u => _userDataManager.GetUserData(u, m).Played && _userDataManager.GetUserData(u, m).LastPlayedDate.HasValue); 
+                    userToUse = _allUsers.FirstOrDefault(u => _userDataManager.GetUserData(u, m).Played && _userDataManager.GetUserData(u, m).LastPlayedDate.HasValue);
                 }
                 return userToUse != null ? _userDataManager.GetUserData(userToUse, m).LastPlayedDate : null;
             });
@@ -326,7 +327,7 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateTotalMovieStudios()
         {
-            var studioSet = new HashSet<string>(_allMovies 
+            var studioSet = new HashSet<string>(_allMovies
                 .Where(x => x.Studios != null && x.Studios.Any())
                 .SelectMany(movie => movie.Studios));
 
@@ -459,6 +460,131 @@ namespace Statistics.Helpers
             return "Resolution Not Available";
         }
 
+        private string getDolbyVisionProfile(MediaStream mediaStream)
+        {
+            if (mediaStream == null)
+                return "Unknown Media";
+
+            if (mediaStream.Profile == null)
+                return "Unknown Dolby Profile";
+
+            var codec = mediaStream.Codec.ToLower();
+            if (codec != "hevc" && codec != "av1")
+                return "Non Dolby Vision Compatible Codec";
+
+            var dvProfile = mediaStream.ExtendedVideoSubTypeDescription;
+            if (dvProfile.ToLower() == "none")
+                return "No Dolby Profile";
+
+            return dvProfile;
+        }
+
+        private bool AddDolbyVisionProfile(ref MediaStream mediaStream, ref Dictionary<string, DVProfileModel> dvProfiles, string mediaName, bool isMovie)
+        {
+            var dvProfile = getDolbyVisionProfile(mediaStream);
+            if (dvProfile == null || dvProfile == "")
+                return false;
+
+            if (!dvProfiles.TryGetValue(dvProfile, out var dvProfileModel))
+            {
+                dvProfileModel = new DVProfileModel { DVProfile = dvProfile, Movies = 0, Episodes = 0 };
+                dvProfiles[dvProfile] = dvProfileModel;
+            }
+            if (isMovie)
+                dvProfiles[dvProfile].Movies++;
+            else
+                dvProfiles[dvProfile].Episodes++;
+
+            _logger.Debug($"AddDolbyVisionProfile - {mediaName}: {dvProfile}");
+
+            return true;
+        }
+
+        public ValueGroup CalculateDVProfileInfo(bool showUnknownDVProfileCount)
+        {
+            var dvProfiles = new Dictionary<string, DVProfileModel>();
+
+            foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                try
+                {
+                    var mediaStream = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+                    AddDolbyVisionProfile(ref mediaStream, ref dvProfiles, movie.SortName, true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug($"CalculateDVProfileInfo-Error {movie.SortName}: {ex.Message}");
+                }
+            }
+
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                try
+                {
+                    var mediaStream = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+                    AddDolbyVisionProfile(ref mediaStream, ref dvProfiles, episode.SortName, false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug($"CalculateDVProfileInfo-episode-Error {episode.SortName}: {ex.Message}");
+                }
+            }
+
+            var tableValueString = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>";
+
+            if (showUnknownDVProfileCount)
+            {
+                bool foundUnknown = false;
+                foreach (var entry in dvProfiles)
+                {
+                    if (statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(entry.Value.DVProfile))
+                    {
+                        foundUnknown = true;
+                        tableValueString += entry.Value.ToString();
+                    }
+                }
+                if (!foundUnknown)
+                {
+                    tableValueString += "<tr><td>Unknown Dolby Profile</td><td>0</td><td>0</td></tr>";
+                }
+            }
+
+            bool found50 = false;
+            foreach (var entry in dvProfiles)
+            {
+                if (entry.Value.DVProfile == "Profile 5.0")
+                {
+                    found50 = true;
+                    tableValueString += entry.Value.ToString();
+                }
+            }
+
+            if (!found50)
+            {
+                tableValueString += "<tr><td>Profile 5.0</td><td>0</td><td>0</td></tr>";
+            }
+
+            foreach (var entry in dvProfiles)
+            {
+                if (statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(entry.Value.DVProfile))
+                    continue;
+
+                if (entry.Value.DVProfile != "Profile 5.0")
+                    tableValueString += entry.Value.ToString();
+            }
+            tableValueString += "</table>";
+
+            return new ValueGroup
+            {
+                Title = Constants.DolbyVisionProfiles,
+                ValueLineOne = tableValueString,
+                ValueLineTwo = "",
+                ValueLineThree = null,
+                ExtraInformation = Constants.HelpDolbyVisionProile,
+                Size = "half"
+            };
+        }
+
 
         public ValueGroup CalculateMovieCodecs()
         {
@@ -495,7 +621,7 @@ namespace Statistics.Helpers
                         codecCounts[codec] = codecModel;
                     }
                     codecCounts[codec].Episodes++;
-                    _logger.Debug($"CalculateMovieCodecs-episode {(episode.Series?.SortName ?? "invalid name")}: {episode.SortName} {codec}"); 
+                    _logger.Debug($"CalculateMovieCodecs-episode {(episode.Series?.SortName ?? "invalid name")}: {episode.SortName} {codec}");
                 }
                 catch (Exception ex)
                 {
@@ -514,38 +640,166 @@ namespace Statistics.Helpers
             };
         }
 
-        public MovieQualityObj CalculateMovieQualityList()
+        public MediaItemCollection CalculateEpisodeCodecItems()
         {
-            var qualityMovieMap = new Dictionary<string, List<statistics.Models.Movie>>();
+            var codecEpisodeMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
+
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                _logger.Debug($"CalculateEpisodeCodecItems {episode.Name}");
+                var codec = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown";
+
+                if (!codecEpisodeMap.TryGetValue(codec, out var episodeList))
+                {
+                    episodeList = new List<statistics.Models.MediaItem>();
+                    codecEpisodeMap[codec] = episodeList;
+                }
+
+                var episodeName = "S" + episode.ParentIndexNumber.ToString().PadLeft(2, '0') + "E" + episode.IndexNumber.ToString().PadLeft(2, '0') + ": " + episode.Name;
+                var mediaItem = new statistics.Models.MediaItem { Id = episode.Id.ToString(), GroupName = episode.SeriesName, Title = episodeName, Year = episode.ProductionYear };
+                episodeList.Add(mediaItem);
+
+                if (codec == "Unknown")
+                    _logger.Debug($"CalculateEpisodeCodecItems-Unknown {episode.Name}");
+            }
+
+            var list = codecEpisodeMap.Select(pair => new MediaItemGroup
+            {
+                Title = pair.Key,
+                MediaItems = pair.Value,
+                IsUnknownDolbyProfile = false
+            }).ToList();
+
+            return new MediaItemCollection()
+            {
+                Count = list.Count(),
+                MediaItemGroups = list
+            };
+        }
+
+        public MediaItemCollection CalculateMovieCodecItems()
+        {
+            var codecMovieMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
 
             foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
-                _logger.Debug($"CalculateMovieQualityList {movie.Name}");
-                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle?.Split(' ')[0] ?? "Unknown";
+                _logger.Debug($"CalculateMovieCodecItems {movie.Name}");
+                var codec = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown";
 
-                if (!qualityMovieMap.TryGetValue(quality, out var movieList))
+                if (!codecMovieMap.TryGetValue(codec, out var movieList))
                 {
-                    movieList = new List<statistics.Models.Movie>();
-                    qualityMovieMap[quality] = movieList;
+                    movieList = new List<statistics.Models.MediaItem>();
+                    codecMovieMap[codec] = movieList;
                 }
-                movieList.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                _logger.Debug($"{quality} {qualityMovieMap.Count}");
+                movieList.Add(new statistics.Models.MediaItem { Id = movie.Id.ToString(), Title = movie.Name, Year = movie.ProductionYear });
+                _logger.Debug($"{codec} {codecMovieMap.Count}");
 
-                if (quality == "Unknown")
-                    _logger.Debug($"CalculateMovieQualityList-Unknown {movie.Name}");
+                if (codec == "Unknown")
+                    _logger.Debug($"CalculateMovieCodecItems-Unknown {movie.Name}");
             }
 
-            var list = qualityMovieMap.Select(pair => new MovieQuality
+            var list = codecMovieMap.Select(pair => new MediaItemGroup
             {
                 Title = pair.Key,
-                Movies = pair.Value
+                MediaItems = pair.Value,
+                IsUnknownDolbyProfile = false
             }).ToList();
 
-
-            return new MovieQualityObj()
+            return new MediaItemCollection()
             {
                 Count = list.Count(),
-                Movies = list
+                MediaItemGroups = list
+            };
+        }
+
+        public MediaItemCollection CalculateEpisodeDVProfileList()
+        {
+            var dvProfileMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
+
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.Series.SortName))
+            {
+                _logger.Debug($"CalculateEpisodeDVProfileList - '{episode.SeriesName} - {episode.Name}'");
+                var mediaStream = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+
+                var dvProfile = getDolbyVisionProfile(mediaStream);
+                if (dvProfile == null || dvProfile == "")
+                {
+                    continue;
+                }
+
+                if (!dvProfileMap.TryGetValue(dvProfile, out var episodeList))
+                {
+                    episodeList = new List<statistics.Models.MediaItem>();
+                    dvProfileMap[dvProfile] = episodeList;
+                }
+
+                var episodeName = "S" + episode.ParentIndexNumber.ToString().PadLeft(2, '0') + "E" + episode.IndexNumber.ToString().PadLeft(2, '0') + ": " + episode.Name;
+                var mediaItem = new statistics.Models.MediaItem { Id = episode.Id.ToString(), GroupName = episode.SeriesName, Title = episodeName, Year = episode.ProductionYear };
+
+                episodeList.Add(mediaItem);
+                _logger.Debug($"CalculateEpisodeDVProfileList - {dvProfile} - '{episode.SeriesName}' - '{episode.Name}'");
+            }
+
+            _logger.Debug($"CalculateEpisodeDVProfileList - Converting to Episode Collection");
+            var list = dvProfileMap.Select(pair => new MediaItemGroup
+            {
+                Title = pair.Key,
+                MediaItems = pair.Value,
+                IsUnknownDolbyProfile = statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(pair.Key)
+            }).ToList();
+
+            //            foreach (var obj in list)
+            //            {
+            //                _logger.Debug($"CalculateEpisodeDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
+            //            }
+
+            return new MediaItemCollection()
+            {
+                Count = list.Count(),
+                MediaItemGroups = list
+            };
+        }
+
+        public MediaItemCollection CalculateMovieDVProfileList()
+        {
+            var dvProfileMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
+
+            foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                _logger.Debug($"CalculateMovieDVProfileList {movie.Name}");
+                var mediaStream = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+
+                var dvProfile = getDolbyVisionProfile(mediaStream);
+                if (dvProfile == null || dvProfile == "")
+                {
+                    continue;
+                }
+
+                if (!dvProfileMap.TryGetValue(dvProfile, out var movieList))
+                {
+                    movieList = new List<statistics.Models.MediaItem>();
+                    dvProfileMap[dvProfile] = movieList;
+                }
+                movieList.Add(new statistics.Models.MediaItem { Id = movie.Id.ToString(), Title = movie.Name, Year = movie.ProductionYear });
+                _logger.Debug($"CalculateMovieDVProfileList - {dvProfile} #{dvProfileMap[dvProfile].Count}");
+            }
+
+            var list = dvProfileMap.Select(pair => new MediaItemGroup
+            {
+                Title = pair.Key,
+                MediaItems = pair.Value,
+                IsUnknownDolbyProfile = statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(pair.Key)
+            }).ToList();
+
+            foreach (var obj in list)
+            {
+                _logger.Debug($"CalculateMovieDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
+            }
+
+            return new MediaItemCollection()
+            {
+                Count = list.Count(),
+                MediaItemGroups = list
             };
         }
         #endregion
@@ -619,7 +873,7 @@ namespace Statistics.Helpers
 
             if (_allSeries.Any())
             {
-                
+
                 foreach (var show in _allSeries)
                 {
                     double showSize = 0;
@@ -668,7 +922,7 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateMostWatchedShows()
         {
-            var showList = _allSeries.OrderBy(x => x.SortName); 
+            var showList = _allSeries.OrderBy(x => x.SortName);
             var users = _allUsers;
             var showProgress = new List<ShowProgress>();
 
@@ -861,7 +1115,8 @@ namespace Statistics.Helpers
             string valueLineTwo = "";
             string id = null;
 
-            if (_allMovies.Any())             {
+            if (_allMovies.Any())
+            {
                 var largest = _allMovies.OrderByDescending(x => x.TotalBitrate).FirstOrDefault();
 
                 if (largest != null)
@@ -1265,7 +1520,7 @@ namespace Statistics.Helpers
             string valueLineTwo = "";
             string id = null;
 
-            
+
             var lowestRatedMovie = _allMovies
                 .Where(x => x.CommunityRating.HasValue && x.CommunityRating != 0)
                 .OrderBy(x => x.CommunityRating)

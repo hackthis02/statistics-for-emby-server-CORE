@@ -1,44 +1,65 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-<PropertyGroup> 
-  <TargetFrameworks>netstandard2.0;</TargetFrameworks> 
-  <Version>3.4.2.0</Version> 
-  <AssemblyVersion>3.4.2.0</AssemblyVersion> 
-  <FileVersion>3.4.2.0</FileVersion>
-</PropertyGroup>
+	<PropertyGroup>
+		<TargetFrameworks>netstandard2.0;</TargetFrameworks>
+		<Version>3.4.2.1</Version>
+		<AssemblyVersion>3.4.2.1</AssemblyVersion>
+		<FileVersion>3.4.2.1</FileVersion>
+	</PropertyGroup>
 
-<ItemGroup>
-  <None Remove="command line.txt" />
-  <None Remove="Configuration\moviePage.js" />
-  <None Remove="Configuration\movieTextPage.js" />
-  <None Remove="Configuration\showOverview.js" />
-  <None Remove="Configuration\StatisticsconfigPage.html" />
-  <None Remove="Configuration\StatisticsconfigPage.js" />
-  <None Remove="Configuration\userBased.js" />
-  <None Remove="Images\statistics-thumb.png" />
-</ItemGroup>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="echo killing current EmbyServer
+        taskkill /T /F /IM &quot;EmbyServer*&quot; 
+        set EMBY_ROOT=&quot;d:\Emby\EmbyServer\&quot;
+		echo copy &quot;$(TargetPath)&quot; &quot;%25EMBY_ROOT%25\programdata\plugins\&quot;
+		copy $(TargetPath) &quot;%25EMBY_ROOT%25\programdata\plugins\&quot;
+        echo &quot;Launching Emby Server&quot;
+        &quot;%25EMBY_ROOT%25\system\EmbyServer.exe&quot;" IgnoreExitCode="true"/>
+	</Target>
 
-<ItemGroup>
-  <EmbeddedResource Include="Configuration\moviePage.js" />
-  <EmbeddedResource Include="Configuration\movieTextPage.js" />
-  <EmbeddedResource Include="Configuration\showOverview.js" />
-  <EmbeddedResource Include="Configuration\StatisticsConfigPage.html" />
-  <EmbeddedResource Include="Configuration\StatisticsConfigPage.js" />
-  <EmbeddedResource Include="Configuration\movieTextPage.html" />
-  <EmbeddedResource Include="Configuration\moviePage.html" />
-  <EmbeddedResource Include="Configuration\showOverview.html" />
-  <EmbeddedResource Include="Configuration\userBased.html" />
-  <EmbeddedResource Include="Configuration\userBased.js" />
-  <EmbeddedResource Include="Images\statistics-thumb.png" />
-</ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Include="Configuration\movieDVProfileTextPage.html" />
+		<EmbeddedResource Include="Configuration\movieDVProfileTextPage.js" />
 
-<ItemGroup>
-  <PackageReference Include="MediaBrowser.Server.Core" Version="4.8.11" />
-  <PackageReference Include="System.Memory" Version="4.5.5" />
-</ItemGroup>
+		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.html" />
+		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.js" />
 
-<ItemGroup>
-  <Folder Include="Models\Configuration\" />
-</ItemGroup>
+		<EmbeddedResource Include="Configuration\movieCodecPage.html" />
+		<EmbeddedResource Include="Configuration\movieCodecPage.js" />
+
+		<EmbeddedResource Include="Configuration\movieCodecTextPage.html" />
+		<EmbeddedResource Include="Configuration\movieCodecTextPage.js" />
+
+		<EmbeddedResource Include="Configuration\episodeCodecPage.html" />
+		<EmbeddedResource Include="Configuration\episodeCodecPage.js" />
+
+		<EmbeddedResource Include="Configuration\episodeCodecTextPage.html" />
+		<EmbeddedResource Include="Configuration\episodeCodecTextPage.js" />
+
+		<EmbeddedResource Include="Configuration\PluginConfiguration.cs" />
+
+		<EmbeddedResource Include="Configuration\showOverview.html" />
+		<EmbeddedResource Include="Configuration\showOverview.js" />
+		
+        <EmbeddedResource Include="Configuration\StatisticsConfigPage.html" />
+		<EmbeddedResource Include="Configuration\StatisticsConfigPage.js" />
+		
+        <EmbeddedResource Include="Configuration\userBased.html" />
+		<EmbeddedResource Include="Configuration\userBased.js" />
+        
+		<EmbeddedResource Include="Images\statistics-thumb.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MediaBrowser.Server.Core" Version="4.8.11" />
+		<PackageReference Include="System.Memory" Version="4.5.5" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+			<_Parameter1>BuildDate</_Parameter1>
+			<_Parameter2>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ssK"))</_Parameter2>
+		</AssemblyAttribute>
+	</ItemGroup>
 
 </Project>

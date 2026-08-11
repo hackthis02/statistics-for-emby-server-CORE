@@ -67,6 +67,8 @@ namespace Statistics.ScheduledTasks
             var numComplete = 0;
 
             PluginConfiguration.LastUpdated = DateTime.Now.ToString("g");
+            PluginConfiguration.Version = Plugin.Instance.Version.ToString(4);
+            PluginConfiguration.BuildDate = BuildDateInfo.GetBuildDate().ToString();
             PluginConfiguration.ServerId = _appHost.SystemId;
 
             numComplete++;
@@ -74,12 +76,14 @@ namespace Statistics.ScheduledTasks
 
 
             var calculator = new Calculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _logger, _providerManager, cancellationToken);
-           
             using (calculator)
             {
                 calculator.SetUser(null);
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
                 PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
+                PluginConfiguration.DolbyVisionProfiles = calculator.CalculateDVProfileInfo(false);
+                PluginConfiguration.DolbyVisionProfilesWithUnknown = calculator.CalculateDVProfileInfo(true);
+
                 PluginConfiguration.TotalUsers = calculator.CalculateTotalUsers();
 
                 numComplete++;
@@ -111,7 +115,10 @@ namespace Statistics.ScheduledTasks
                 PluginConfiguration.NewestShow = calculator.CalculateNewestShow();
                 PluginConfiguration.NewestAddedEpisode = calculator.CalculateNewestAddedEpisode();
 
-                PluginConfiguration.MovieQualityItems = calculator.CalculateMovieQualityList();
+                PluginConfiguration.MovieCodecItems = calculator.CalculateMovieCodecItems();
+                PluginConfiguration.EpisodeCodecItems = calculator.CalculateEpisodeCodecItems();
+                PluginConfiguration.MovieDVProfileItems = calculator.CalculateMovieDVProfileList();
+                PluginConfiguration.EpisodeDVProfileItems = calculator.CalculateEpisodeDVProfileList();
             }
 
             numComplete++;
