@@ -35,23 +35,43 @@ namespace statistics
                 },
                 new PluginPageInfo
                 {
-                    Name = "StatisticsMovieList",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.moviePage.html"
+                    Name = "StatisticsMovieCodec",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieCodecPage.html"
                 },
                 new PluginPageInfo
                 {
-                    Name = "StatisticsMovieListJS",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.moviePage.js"
+                    Name = "StatisticsMovieCodecJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieCodecPage.js"
                 },
                 new PluginPageInfo
                 {
-                    Name = "StatisticsMovieListText",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieTextPage.html"
+                    Name = "StatisticsEpisodeCodec",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.episodeCodecPage.html"
                 },
                 new PluginPageInfo
                 {
-                    Name = "StatisticsMovieListTextJS",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieTextPage.js"
+                    Name = "StatisticsEpisodeCodecJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.episodeCodecPage.js"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsMovieCodecText",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieCodecTextPage.html"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsMovieCodecTextJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.movieCodecTextPage.js"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsEpisodeCodecText",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.episodeCodecTextPage.html"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsEpisodeCodecTextJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.episodeCodecTextPage.js"
                 },
                 new PluginPageInfo
                 {

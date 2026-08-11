@@ -640,28 +640,65 @@ namespace Statistics.Helpers
             };
         }
 
-        public MediaItemCollection CalculateMovieQualityList()
+        public MediaItemCollection CalculateEpisodeCodecItems()
         {
-            var qualityMovieMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
+            var codecEpisodeMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
+
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                _logger.Debug($"CalculateEpisodeCodecItems {episode.Name}");
+                var codec = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown";
+
+                if (!codecEpisodeMap.TryGetValue(codec, out var episodeList))
+                {
+                    episodeList = new List<statistics.Models.MediaItem>();
+                    codecEpisodeMap[codec] = episodeList;
+                }
+
+                var episodeName = "S" + episode.ParentIndexNumber.ToString().PadLeft(2, '0') + "E" + episode.IndexNumber.ToString().PadLeft(2, '0') + ": " + episode.Name;
+                var mediaItem = new statistics.Models.MediaItem { Id = episode.Id.ToString(), GroupName = episode.SeriesName, Title = episodeName, Year = episode.ProductionYear };
+                episodeList.Add(mediaItem);
+
+                if (codec == "Unknown")
+                    _logger.Debug($"CalculateEpisodeCodecItems-Unknown {episode.Name}");
+            }
+
+            var list = codecEpisodeMap.Select(pair => new MediaItemGroup
+            {
+                Title = pair.Key,
+                MediaItems = pair.Value,
+                IsUnknownDolbyProfile = false
+            }).ToList();
+
+            return new MediaItemCollection()
+            {
+                Count = list.Count(),
+                MediaItemGroups = list
+            };
+        }
+
+        public MediaItemCollection CalculateMovieCodecItems()
+        {
+            var codecMovieMap = new Dictionary<string, List<statistics.Models.MediaItem>>();
 
             foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
-                _logger.Debug($"CalculateMovieQualityList {movie.Name}");
-                var quality = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.DisplayTitle?.Split(' ')[0] ?? "Unknown";
+                _logger.Debug($"CalculateMovieCodecItems {movie.Name}");
+                var codec = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video)?.Codec ?? "Unknown";
 
-                if (!qualityMovieMap.TryGetValue(quality, out var movieList))
+                if (!codecMovieMap.TryGetValue(codec, out var movieList))
                 {
                     movieList = new List<statistics.Models.MediaItem>();
-                    qualityMovieMap[quality] = movieList;
+                    codecMovieMap[codec] = movieList;
                 }
                 movieList.Add(new statistics.Models.MediaItem { Id = movie.Id.ToString(), Title = movie.Name, Year = movie.ProductionYear });
-                _logger.Debug($"{quality} {qualityMovieMap.Count}");
+                _logger.Debug($"{codec} {codecMovieMap.Count}");
 
-                if (quality == "Unknown")
-                    _logger.Debug($"CalculateMovieQualityList-Unknown {movie.Name}");
+                if (codec == "Unknown")
+                    _logger.Debug($"CalculateMovieCodecItems-Unknown {movie.Name}");
             }
 
-            var list = qualityMovieMap.Select(pair => new MediaItemGroup
+            var list = codecMovieMap.Select(pair => new MediaItemGroup
             {
                 Title = pair.Key,
                 MediaItems = pair.Value,

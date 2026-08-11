@@ -52,7 +52,8 @@ namespace statistics.Configuration
 
         public bool enableHyperlinks { get; set; }
         public bool showUnknownDVProfileCount { get; set; }
-        public MediaItemCollection MovieQualityItems { get; set; }
+        public MediaItemCollection MovieCodecItems { get; set; }
+        public MediaItemCollection EpisodeCodecItems { get; set; }
         public MediaItemCollection MovieDVProfileItems { get; set; }
         public MediaItemCollection EpisodeDVProfileItems { get; set; }
         

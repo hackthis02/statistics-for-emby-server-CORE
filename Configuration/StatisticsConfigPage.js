@@ -154,27 +154,27 @@
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector("#GoToMovieList").addEventListener("click",
+            view.querySelector("#GoToMovieCodec").addEventListener("click",
                 function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieList");
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieCodec");
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector("#GoToMovieTextList").addEventListener("click",
+            view.querySelector("#GoToMovieCodecText").addEventListener("click",
                 function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieListText");
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieCodecText");
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector("#GoToEpisodeList").addEventListener("click",
+            view.querySelector("#GoToEpisodeCodec").addEventListener("click",
                 function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeList");
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeCodec");
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector("#GoToEpisodeTextList").addEventListener("click",
+            view.querySelector("#GoToEpisodeCodecText").addEventListener("click",
                 function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeListText");
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeCodecText");
                     Dashboard.navigate(href);
                 });
 

@@ -24,11 +24,17 @@
 		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.html" />
 		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.js" />
 
-		<EmbeddedResource Include="Configuration\moviePage.html" />
-		<EmbeddedResource Include="Configuration\moviePage.js" />
+		<EmbeddedResource Include="Configuration\movieCodecPage.html" />
+		<EmbeddedResource Include="Configuration\movieCodecPage.js" />
 
-		<EmbeddedResource Include="Configuration\movieTextPage.html" />
-		<EmbeddedResource Include="Configuration\movieTextPage.js" />
+		<EmbeddedResource Include="Configuration\movieCodecTextPage.html" />
+		<EmbeddedResource Include="Configuration\movieCodecTextPage.js" />
+
+		<EmbeddedResource Include="Configuration\episodeCodecPage.html" />
+		<EmbeddedResource Include="Configuration\episodeCodecPage.js" />
+
+		<EmbeddedResource Include="Configuration\episodeCodecTextPage.html" />
+		<EmbeddedResource Include="Configuration\episodeCodecTextPage.js" />
 
 		<EmbeddedResource Include="Configuration\PluginConfiguration.cs" />
 

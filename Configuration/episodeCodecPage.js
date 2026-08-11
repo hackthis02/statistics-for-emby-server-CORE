@@ -13,8 +13,8 @@
             Dashboard.showLoadingMsg();
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                for (var h = 0, len = config.MovieQualityItems.Count; h < len; h++) {
-                    var currGroup = config.MovieQualityItems.MediaItemGroups[h];
+                for (var h = 0, len = config.EpisodeCodecItems.Count; h < len; h++) {
+                    var currGroup = config.EpisodeCodecItems.MediaItemGroups[h];
 
                     var innerText = ``
                     currGroup.MediaItems.forEach((v) => {

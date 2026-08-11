@@ -13,12 +13,13 @@
             Dashboard.showLoadingMsg();
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                for (var h = 0, len = config.MovieQualityItems.Count; h < len; h++) {
-                    var currGroup = config.MovieQualityItems.MediaItemGroups[h];
+                for (var h = 0, len = config.EpisodeCodecItems.Count; h < len; h++) {
+                    var currGroup = config.EpisodeCodecItems.MediaItemGroups[h];
 
                     var innerText = ``
+                    var prevGroup = ``;
                     currGroup.MediaItems.forEach((v) => {
-                        innerText += makeTable(v, config.ServerId);
+                        innerText += makeTable(v, config.ServerId, prevGroup != v.GroupName);
                     });
                     
                     var currHtml = `<h2 id = "` + currGroup.Title + `Title">` + currGroup.Title + `</h2>` +
@@ -30,10 +31,14 @@
             });
         };
 
-        function makeTable(movie, serverId) {
+        function makeTable(episode, serverId, newGroup) {
             var html = `<tr>`;
-            html += `<td><a is="emby-linkbutton" href="/item?id=` + movie.Id + `&serverId=` + serverId + `">` + movie.Title + `</a></td>`;
-            html += `<td>` + movie.Year + `</td>`;
+            if (newGroup) {
+                html += `<td colspan="3"><h3>` + episode.GroupName + `</h3></td>`;
+                html += `</tr><tr>`;
+            }
+            html += `<td><a is="emby-linkbutton" href="/item?id=` + episode.Id + `&serverId=` + serverId + `">` + episode.Title + `</a></td>`;
+            html += `<td>` + episode.Year + `</td>`;
             return html + `</tr>`;
         }
 

@@ -113,7 +113,8 @@ namespace Statistics.ScheduledTasks
                 PluginConfiguration.NewestShow = calculator.CalculateNewestShow();
                 PluginConfiguration.NewestAddedEpisode = calculator.CalculateNewestAddedEpisode();
 
-                PluginConfiguration.MovieQualityItems = calculator.CalculateMovieQualityList();
+                PluginConfiguration.MovieCodecItems = calculator.CalculateMovieCodecItems();
+                PluginConfiguration.EpisodeCodecItems = calculator.CalculateEpisodeCodecItems();
                 PluginConfiguration.MovieDVProfileItems = calculator.CalculateMovieDVProfileList();
                 PluginConfiguration.EpisodeDVProfileItems = calculator.CalculateEpisodeDVProfileList();
             }
