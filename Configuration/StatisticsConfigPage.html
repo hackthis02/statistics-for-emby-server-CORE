@@ -4,11 +4,23 @@
             <h1>Statistics plugin</h1>
             <p name="statsIntro" id="statsIntro">
             </p>
+            <p name="lastRunInfo" id="lastRunInfo">
+            </p>
 
-            <h2>General statistics</h2>
+            <h2>User statistics</h2>
+            <div class="statRow" name="userStats" id="userStats"></div>
             <div style="max-width: 900px;">
                 <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToUserStats" id="GoToUserStats">View user-based statistics</button>
             </div>
+
+            <h2>General Media statistics</h2>
+            <div style="max-width: 900px;">
+                <label class="emby-checkbox-label">
+                    <input id="trackDolbyVisionProfiles" is="emby-checkbox" class="emby-checkbox" type="checkbox">
+                    <span class="checkboxLabel">Track Dolby Vision Profiles?</span>
+                </label>
+            </div>
+
             <div class="statRow" name="generalStat" id="generalStat"></div>
 
             <h2>Movie statistics</h2>
@@ -28,7 +40,7 @@
                     <input id="showHyperLinks" is="emby-checkbox" class="emby-checkbox" type="checkbox">
                     <span class="checkboxLabel">Enable show hyperlinks</span>
                 </label>
-                <button style="max-width: 75%;" is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToShowProgress" id="GoToShowProgress">View user-based show progress</button>                
+                <button style="max-width: 75%;" is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToShowProgress" id="GoToShowProgress">View user-based show progress</button>
             </div>
             <div class="statRow" name="showStat" id="showStat"></div>
             <div style="clear: both;"></div>
