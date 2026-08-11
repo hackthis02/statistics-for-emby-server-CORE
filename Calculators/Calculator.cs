@@ -462,21 +462,24 @@ namespace Statistics.Helpers
 
         private string getDolbyVisionProfile(MediaStream mediaStream)
         {
-            if (mediaStream == null || mediaStream.Profile == null)
-                return "";
+            if (mediaStream == null)
+                return "Unknown Media";
+
+            if (mediaStream.Profile == null)
+                return "Unknown Dolby Profile";
 
             var codec = mediaStream.Codec.ToLower();
             if (codec != "hevc" && codec != "av1")
-                return "";
+                return "Non Dolby Vision Compatible Codec";
 
             var dvProfile = mediaStream.ExtendedVideoSubTypeDescription;
             if (dvProfile.ToLower() == "none")
-                return "";
+                return "No Dolby Profile";
 
             return dvProfile;
         }
 
-        private bool AddDolbyVisionProfile(ref MediaStream mediaStream, ref Dictionary<string, DVProfileModel> dvProfiles, string mediaName, bool isMovie )
+        private bool AddDolbyVisionProfile(ref MediaStream mediaStream, ref Dictionary<string, DVProfileModel> dvProfiles, string mediaName, bool isMovie)
         {
             var dvProfile = getDolbyVisionProfile(mediaStream);
             if (dvProfile == null || dvProfile == "")
@@ -487,17 +490,17 @@ namespace Statistics.Helpers
                 dvProfileModel = new DVProfileModel { DVProfile = dvProfile, Movies = 0, Episodes = 0 };
                 dvProfiles[dvProfile] = dvProfileModel;
             }
-            if ( isMovie )
+            if (isMovie)
                 dvProfiles[dvProfile].Movies++;
             else
                 dvProfiles[dvProfile].Episodes++;
 
-            _logger.Debug($"CalculateDVProfileInfo {mediaName} {dvProfile}");
+            _logger.Debug($"AddDolbyVisionProfile - {mediaName}: {dvProfile}");
 
             return true;
         }
 
-        public ValueGroup CalculateDVProfileInfo()
+        public ValueGroup CalculateDVProfileInfo(bool showUnknownDVProfileCount)
         {
             var dvProfiles = new Dictionary<string, DVProfileModel>();
 
@@ -527,10 +530,54 @@ namespace Statistics.Helpers
                 }
             }
 
+            var tableValueString = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>";
+
+            if (showUnknownDVProfileCount)
+            {
+                bool foundUnknown = false;
+                foreach (var entry in dvProfiles)
+                {
+                    if (statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(entry.Value.DVProfile))
+                    {
+                        foundUnknown = true;
+                        tableValueString += entry.Value.ToString();
+                    }
+                }
+                if (!foundUnknown)
+                {
+                    tableValueString += "<tr><td>Unknown Dolby Profile</td><td>0</td><td>0</td></tr>";
+                }
+            }
+
+            bool found50 = false;
+            foreach (var entry in dvProfiles)
+            {
+                if (entry.Value.DVProfile == "Profile 5.0")
+                {
+                    found50 = true;
+                    tableValueString += entry.Value.ToString();
+                }
+            }
+
+            if (!found50)
+            {
+                tableValueString += "<tr><td>Profile 5.0</td><td>0</td><td>0</td></tr>";
+            }
+
+            foreach (var entry in dvProfiles)
+            {
+                if (statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(entry.Value.DVProfile))
+                    continue;
+
+                if (entry.Value.DVProfile != "Profile 5.0")
+                    tableValueString += entry.Value.ToString();
+            }
+            tableValueString += "</table>";
+
             return new ValueGroup
             {
                 Title = Constants.DolbyVisionProfiles,
-                ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", dvProfiles.Values)}</table>",
+                ValueLineOne = tableValueString,
                 ValueLineTwo = "",
                 ValueLineThree = null,
                 ExtraInformation = Constants.HelpDolbyVisionProile,
@@ -617,7 +664,8 @@ namespace Statistics.Helpers
             var list = qualityMovieMap.Select(pair => new MovieGroup
             {
                 Title = pair.Key,
-                Movies = pair.Value
+                Movies = pair.Value,
+                IsUnknownDolbyProfile = false
             }).ToList();
 
 
@@ -628,13 +676,13 @@ namespace Statistics.Helpers
             };
         }
 
-        public MovieCollection CalculateTVDVProfileList()
+        public MovieCollection CalculateEpisodeDVProfileList()
         {
             var dvProfileMap = new Dictionary<string, List<statistics.Models.Movie>>();
 
-            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.Series.SortName))
             {
-                _logger.Debug($"CalculateTVDVProfileList {episode.Name}");
+                _logger.Debug($"CalculateEpisodeDVProfileList - '{episode.SeriesName} - {episode.Name}'");
                 var mediaStream = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
 
                 var dvProfile = getDolbyVisionProfile(mediaStream);
@@ -648,16 +696,24 @@ namespace Statistics.Helpers
                     movieList = new List<statistics.Models.Movie>();
                     dvProfileMap[dvProfile] = movieList;
                 }
-                movieList.Add(new statistics.Models.Movie { Id = episode.Id.ToString(), Name = episode.Name, Year = episode.ProductionYear });
-                _logger.Debug($"{dvProfile} {dvProfileMap.Count}");
+                var episodeName = episode.SeriesName + " - S" + episode.ParentIndexNumber.ToString().PadLeft(2, '0') + "E" + episode.IndexNumber.ToString().PadLeft(2, '0') + ": " + episode.Name;
+                movieList.Add(new statistics.Models.Movie { Id = episode.Id.ToString(), Name = episodeName, Year = episode.ProductionYear });
+                _logger.Debug($"CalculateEpisodeDVProfileList - {dvProfile} #{dvProfileMap[dvProfile].Count}");
             }
+
+            _logger.Debug($"CalculateEpisodeDVProfileList - Converting to Movie Collection");
 
             var list = dvProfileMap.Select(pair => new MovieGroup
             {
                 Title = pair.Key,
-                Movies = pair.Value
+                Movies = pair.Value,
+                IsUnknownDolbyProfile = statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(pair.Key)
             }).ToList();
-
+            
+            foreach(var obj in list)
+            {
+                _logger.Debug($"CalculateEpisodeDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
+            }
 
             return new MovieCollection()
             {
@@ -676,7 +732,8 @@ namespace Statistics.Helpers
                 var mediaStream = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
 
                 var dvProfile = getDolbyVisionProfile(mediaStream);
-                if (dvProfile == null || dvProfile == "") {
+                if (dvProfile == null || dvProfile == "")
+                {
                     continue;
                 }
 
@@ -686,15 +743,20 @@ namespace Statistics.Helpers
                     dvProfileMap[dvProfile] = movieList;
                 }
                 movieList.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
-                _logger.Debug($"{dvProfile} {dvProfileMap.Count}");
+                _logger.Debug($"CalculateMovieDVProfileList - {dvProfile} #{dvProfileMap[dvProfile].Count}");
             }
 
             var list = dvProfileMap.Select(pair => new MovieGroup
             {
                 Title = pair.Key,
-                Movies = pair.Value
+                Movies = pair.Value,
+                IsUnknownDolbyProfile = statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(pair.Key)
             }).ToList();
 
+            foreach (var obj in list)
+            {
+                _logger.Debug($"CalculateMovieDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
+            }
 
             return new MovieCollection()
             {
@@ -1015,7 +1077,8 @@ namespace Statistics.Helpers
             string valueLineTwo = "";
             string id = null;
 
-            if (_allMovies.Any())             {
+            if (_allMovies.Any())
+            {
                 var largest = _allMovies.OrderByDescending(x => x.TotalBitrate).FirstOrDefault();
 
                 if (largest != null)
