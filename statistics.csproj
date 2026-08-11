@@ -18,37 +18,32 @@
 	</Target>
 
 	<ItemGroup>
-		<None Remove="commandline.txt" />
-		<None Remove="Configuration\moviePage.js" />
-		<None Remove="Configuration\movieTextPage.js" />
-		<None Remove="Configuration\showOverview.js" />
-		<None Remove="Configuration\StatisticsConfigPage.html" />
-		<None Remove="Configuration\StatisticsConfigPage.js" />
-		<None Remove="Configuration\userBased.js" />
-		<None Remove="Images\statistics-thumb.png" />
-	</ItemGroup>
+		<EmbeddedResource Include="Configuration\dvProfilePage.html" />
+		<EmbeddedResource Include="Configuration\dvProfilePage.js" />
 
-	<ItemGroup>
-		<EmbeddedResource Include="Configuration\moviePage.js" />
-		<EmbeddedResource Include="Configuration\movieTextPage.js" />
-		<EmbeddedResource Include="Configuration\showOverview.js" />
-		<EmbeddedResource Include="Configuration\StatisticsConfigPage.html" />
-		<EmbeddedResource Include="Configuration\StatisticsConfigPage.js" />
-		<EmbeddedResource Include="Configuration\movieTextPage.html" />
 		<EmbeddedResource Include="Configuration\moviePage.html" />
+		<EmbeddedResource Include="Configuration\moviePage.js" />
+
+		<EmbeddedResource Include="Configuration\movieTextPage.html" />
+		<EmbeddedResource Include="Configuration\movieTextPage.js" />
+
+		<EmbeddedResource Include="Configuration\PluginConfiguration.cs" />
+
 		<EmbeddedResource Include="Configuration\showOverview.html" />
-		<EmbeddedResource Include="Configuration\userBased.html" />
+		<EmbeddedResource Include="Configuration\showOverview.js" />
+		
+        <EmbeddedResource Include="Configuration\StatisticsConfigPage.html" />
+		<EmbeddedResource Include="Configuration\StatisticsConfigPage.js" />
+		
+        <EmbeddedResource Include="Configuration\userBased.html" />
 		<EmbeddedResource Include="Configuration\userBased.js" />
+        
 		<EmbeddedResource Include="Images\statistics-thumb.png" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="MediaBrowser.Server.Core" Version="4.8.11" />
 		<PackageReference Include="System.Memory" Version="4.5.5" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="Models\Configuration\" />
 	</ItemGroup>
 
 	<ItemGroup>
