@@ -14,21 +14,28 @@
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.MovieQualityItems.Count; h < len; h++) {
-                    var innerText = ``
-                    var currMovieGroup = config.MovieQualityItems.MediaItems[h];
+                    var currGroup = config.MovieQualityItems.MediaItemGroups[h];
 
-                    currMovieGroup.MediaItems.forEach((v) => {
-                        var imageUrl = ApiClient.getImageUrl(v.Id, { type: "Primary", quality: 90 });
-                        innerText += `<a is="emby-linkbutton" href="/item?id=` + v.Id + `&serverId=` + config.ServerId + `"><img src="` + imageUrl + `" height="200px" alt="` + v.Name + `" /></a>`;
+                    var innerText = ``
+                    currGroup.MediaItems.forEach((v) => {
+                        innerText += makeLink(v, config.ServerId);
                     });
 
-                    var currHtml = `<h2 id = "` + currMovieGroup.Title + `Title">` + currMovieGroup.Title + `</h2><div id="` + currMovieGroup.Title + `">` + innerText + `</div>`;
+                    var currHtml = `<h2 id = "` + currGroup.Title + `Title">` + currGroup.Title + `</h2>` +
+                                   `<div id="` + currGroup.Title + `">` + innerText + `</div>`;
                     view.querySelector("#pagestart").innerHTML += currHtml;
                 }
 
                 Dashboard.hideLoadingMsg();
             });
         };
+
+        function makeLink(movie, serverId) {
+            var imageUrl = ApiClient.getImageUrl(movie.Id, { type: "Primary", quality: 90 });
+
+            var html = `<a is="emby-linkbutton" href="/item?id=` + movie.Id + `&serverId=` + serverId + `"><img src="` + imageUrl + `" height="200px" alt="` + movie.Name + `" /></a>`;
+            return html;
+        }
 
         Object.assign(View.prototype, BaseView.prototype);
 

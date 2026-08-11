@@ -14,17 +14,17 @@
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.MovieDVProfileItems.Count; h < len; h++) {
-                    var currMovieGroup = config.MovieDVProfileItems.MediaItems[h];
-                    if (!config.showUnknownDVProfileCount && currMovieGroup.IsUnknownDolbyProfile)
+                    var currGroup = config.MovieDVProfileItems.MediaItemGroups[h];
+                    if (!config.showUnknownDVProfileCount && currGroup.IsUnknownDolbyProfile)
                         continue;
 
                     var innerText = ``
-                    currMovieGroup.MediaItems.forEach((v) => {
+                    currGroup.MediaItems.forEach((v) => {
                         innerText += makeTable(v, config.ServerId);
                     });
 
-                    var currHtml = `<h2 id = "` + currMovieGroup.Title + `Title">` + currMovieGroup.Title + `</h2>`;
-                    currHtml += `<div><table id="` + currMovieGroup.Title + `">` + innerText + `</table></div>`;
+                    var currHtml = `<h2 id = "` + currGroup.Title + `Title">` + currGroup.Title + `</h2>` +
+                                   `<div><table id="` + currGroup.Title + `">` + innerText + `</table></div>`;
 
                     view.querySelector("#pagestart").innerHTML += currHtml;
                 }

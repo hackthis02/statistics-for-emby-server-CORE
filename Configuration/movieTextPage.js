@@ -14,14 +14,15 @@
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.MovieQualityItems.Count; h < len; h++) {
-                    var innerText = ``
-                    var currMovieGroup = config.MovieQualityItems.MediaItems[h];
+                    var currGroup = config.MovieQualityItems.MediaItemGroups[h];
 
-                    currMovieGroup.MediaItems.forEach((v) => {
+                    var innerText = ``
+                    currGroup.MediaItems.forEach((v) => {
                         innerText += makeTable(v, config.ServerId);
                     });
                     
-                    var currHtml = `<h2 id = "` + currMovieGroup.Title + `Title">` + currMovieGroup.Title + `</h2><div><table id="` + currMovieGroup.Title + `">` + innerText + `</table></div>`;
+                    var currHtml = `<h2 id = "` + currGroup.Title + `Title">` + currGroup.Title + `</h2>` +
+                                   `<div><table id="` + currGroup.Title + `">` + innerText + `</table></div>`;
                     view.querySelector("#pagestart") .innerHTML += currHtml;
                 }
 

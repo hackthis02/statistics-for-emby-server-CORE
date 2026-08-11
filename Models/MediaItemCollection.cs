@@ -4,6 +4,7 @@ namespace statistics.Models
 {
     public class MediaItem
     {
+        public string GroupName { get; set; }
         public string Title { get; set; }
         public string Id { get; set; }
         public int? Year { get; set; }
@@ -11,7 +12,7 @@ namespace statistics.Models
 
     public class MediaItemGroup
     {
-        public List<MediaItem> MediaItems{ get; set; }
+        public List<MediaItem> MediaItems { get; set; }
         public string Title { get; set; }
         public bool IsUnknownDolbyProfile { get; set; } = false;
     }
@@ -19,6 +20,6 @@ namespace statistics.Models
     public class MediaItemCollection
     {
         public int Count { get; set; }
-        public List<MediaItemGroup> MediaItems { get; set; }
+        public List<MediaItemGroup> MediaItemGroups { get; set; }
     }
 }

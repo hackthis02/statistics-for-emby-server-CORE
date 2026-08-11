@@ -14,16 +14,19 @@
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                 for (var h = 0, len = config.EpisodeDVProfileItems.Count; h < len; h++) {
-                    var innerText = ``
-                    var currEpisodeGroup = config.EpisodeDVProfileItems.MediaItems[h];
-                    if (!config.showUnknownDVProfileCount && config.EpisodeDVProfileItems.IsUnknownDolbyProfile)
+                    var currGroup = config.EpisodeDVProfileItems.MediaItemGroups[h];
+                    if (!config.showUnknownDVProfileCount && currGroup.IsUnknownDolbyProfile)
                         continue;
 
-                    currEpisodeGroup.MediaItems.forEach((v) => {
-                        innerText += makeTable(v, config.ServerId);
+                    var innerText = ``;
+                    var prevGroup = ``;
+                    currGroup.MediaItems.forEach((v) => {
+                        innerText += makeTable(v, config.ServerId, prevGroup != v.GroupName);
+                        prevGroup = v.GroupName;
                     });
 
-                    var currHtml = `<h2 id = "` + currEpisodeGroup.Title + `Title">` + currEpisodeGroup.Title + `</h2><div><table id="` + currEpisodeGroup.Title + `">` + innerText + `</table></div>`;
+                    var currHtml = `<h2 id = "` + currGroup.Title + `Title">` + currGroup.Title + `</h2>` +
+                                   `<div><table id="` + currGroup.Title + `">` + innerText + `</table></div>`;
                     view.querySelector("#pagestart").innerHTML += currHtml;
                 }
 
@@ -31,8 +34,13 @@
             });
         };
 
-        function makeTable(episode, serverId) {
+        function makeTable(episode, serverId, newGroup) {
             var html = `<tr>`;
+            if ( newGroup )
+            {
+                html += `<td colspan="3"><h3>` + episode.GroupName + `</h3></td>`;
+                html += `</tr><tr>`;
+            }
             html += `<td><a is="emby-linkbutton" href="/item?id=` + episode.Id + `&serverId=` + serverId + `">` + episode.Title + `</a></td>`;
             html += `<td>` + episode.Year + `</td>`;
             return html + `</tr>`;

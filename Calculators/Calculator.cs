@@ -668,11 +668,10 @@ namespace Statistics.Helpers
                 IsUnknownDolbyProfile = false
             }).ToList();
 
-
             return new MediaItemCollection()
             {
                 Count = list.Count(),
-                MediaItems = list
+                MediaItemGroups = list
             };
         }
 
@@ -691,34 +690,36 @@ namespace Statistics.Helpers
                     continue;
                 }
 
-                if (!dvProfileMap.TryGetValue(dvProfile, out var movieList))
+                if (!dvProfileMap.TryGetValue(dvProfile, out var episodeList))
                 {
-                    movieList = new List<statistics.Models.MediaItem>();
-                    dvProfileMap[dvProfile] = movieList;
+                    episodeList = new List<statistics.Models.MediaItem>();
+                    dvProfileMap[dvProfile] = episodeList;
                 }
-                var episodeName = episode.SeriesName + " - S" + episode.ParentIndexNumber.ToString().PadLeft(2, '0') + "E" + episode.IndexNumber.ToString().PadLeft(2, '0') + ": " + episode.Name;
-                movieList.Add(new statistics.Models.MediaItem { Id = episode.Id.ToString(), Title = episodeName, Year = episode.ProductionYear });
-                _logger.Debug($"CalculateEpisodeDVProfileList - {dvProfile} #{dvProfileMap[dvProfile].Count}");
+
+                var episodeName = "S" + episode.ParentIndexNumber.ToString().PadLeft(2, '0') + "E" + episode.IndexNumber.ToString().PadLeft(2, '0') + ": " + episode.Name;
+                var mediaItem = new statistics.Models.MediaItem { Id = episode.Id.ToString(), GroupName = episode.SeriesName, Title = episodeName, Year = episode.ProductionYear };
+
+                episodeList.Add(mediaItem);
+                _logger.Debug($"CalculateEpisodeDVProfileList - {dvProfile} - '{episode.SeriesName}' - '{episode.Name}'");
             }
 
-            _logger.Debug($"CalculateEpisodeDVProfileList - Converting to Movie Collection");
-
+            _logger.Debug($"CalculateEpisodeDVProfileList - Converting to Episode Collection");
             var list = dvProfileMap.Select(pair => new MediaItemGroup
             {
                 Title = pair.Key,
                 MediaItems = pair.Value,
                 IsUnknownDolbyProfile = statistics.Configuration.PluginConfiguration.IsUnknownDolbyProfile(pair.Key)
             }).ToList();
-            
-            foreach(var obj in list)
-            {
-                _logger.Debug($"CalculateEpisodeDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
-            }
+
+            //            foreach (var obj in list)
+            //            {
+            //                _logger.Debug($"CalculateEpisodeDVProfileList - Post List created - {obj.Title} - {obj.IsUnknownDolbyProfile}");
+            //            }
 
             return new MediaItemCollection()
             {
                 Count = list.Count(),
-                MediaItems = list
+                MediaItemGroups = list
             };
         }
 
@@ -761,7 +762,7 @@ namespace Statistics.Helpers
             return new MediaItemCollection()
             {
                 Count = list.Count(),
-                MediaItems = list
+                MediaItemGroups = list
             };
         }
         #endregion
