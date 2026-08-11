@@ -99,6 +99,7 @@
 
                     generalStat += createStat(config.MovieQualities, view);
                     generalStat += createStat(config.MovieCodecs, view);
+                    generalStat += createStat(config.MovieDVProfiles, view);
                     generalStat += createStat(config.MostActiveUsers, view);
                     generalStat += createStat(config.TotalUsers, view);
 

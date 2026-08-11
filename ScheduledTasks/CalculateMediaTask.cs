@@ -80,6 +80,7 @@ namespace Statistics.ScheduledTasks
                 calculator.SetUser(null);
                 PluginConfiguration.MovieQualities = calculator.CalculateMovieQualities();
                 PluginConfiguration.MovieCodecs = calculator.CalculateMovieCodecs();
+                PluginConfiguration.MovieDVProfiles = calculator.CalculateDVProfileInfo();
                 PluginConfiguration.TotalUsers = calculator.CalculateTotalUsers();
 
                 numComplete++;

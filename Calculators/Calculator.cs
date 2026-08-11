@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -27,7 +28,7 @@ namespace Statistics.Helpers
         private readonly IUserDataManager _userDataManager;
 
         public Calculator(IUserManager userManager, ILibraryManager libraryManager,
-            IUserDataManager userDataManager, IFileSystem fileSystem, ILogger logger, 
+            IUserDataManager userDataManager, IFileSystem fileSystem, ILogger logger,
             IProviderManager providerManager, CancellationToken cancellationToken)
             : base(userManager, libraryManager, userDataManager, providerManager, logger, cancellationToken)
         {
@@ -37,7 +38,7 @@ namespace Statistics.Helpers
             _allMovies = GetAllMovies().ToList();
             _allSeries = GetAllSeries().ToList();
             _allEpisodes = GetAllOwnedEpisodes().ToList();
-            _allUsers = GetAllUser().ToList();           
+            _allUsers = GetAllUser().ToList();
         }
 
         #region TopYears
@@ -74,7 +75,7 @@ namespace Statistics.Helpers
                 User userToUse = User;
                 if (User == null)
                 {
-                    userToUse = _allUsers.FirstOrDefault(u => _userDataManager.GetUserData(u, m).Played && _userDataManager.GetUserData(u, m).LastPlayedDate.HasValue); 
+                    userToUse = _allUsers.FirstOrDefault(u => _userDataManager.GetUserData(u, m).Played && _userDataManager.GetUserData(u, m).LastPlayedDate.HasValue);
                 }
                 return userToUse != null ? _userDataManager.GetUserData(userToUse, m).LastPlayedDate : null;
             });
@@ -326,7 +327,7 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateTotalMovieStudios()
         {
-            var studioSet = new HashSet<string>(_allMovies 
+            var studioSet = new HashSet<string>(_allMovies
                 .Where(x => x.Studios != null && x.Studios.Any())
                 .SelectMany(movie => movie.Studios));
 
@@ -459,6 +460,73 @@ namespace Statistics.Helpers
             return "Resolution Not Available";
         }
 
+        private bool AddDolbyVisionProfile(ref MediaStream mediaStream, ref Dictionary<string, DVProfileModel> dvProfiles, string mediaName, bool isMovie )
+        {
+            if (mediaStream == null)
+                return false;
+
+            var codec = mediaStream.Codec.ToLower();
+            if (codec != "hevc" && codec != "av1")
+                return false;
+
+            var dvProfile = mediaStream.ExtendedVideoSubTypeDescription;
+
+            if (!dvProfiles.TryGetValue(dvProfile, out var dvProfileModel))
+            {
+                dvProfileModel = new DVProfileModel { DVProfile = dvProfile, Movies = 0, Episodes = 0 };
+                dvProfiles[dvProfile] = dvProfileModel;
+            }
+            if ( isMovie )
+                dvProfiles[dvProfile].Movies++;
+            else
+                dvProfiles[dvProfile].Episodes++;
+
+            _logger.Debug($"CalculateDVProfileInfo {mediaName} {dvProfile}");
+
+            return true;
+        }
+
+        public ValueGroup CalculateDVProfileInfo()
+        {
+            var dvProfiles = new Dictionary<string, DVProfileModel>();
+
+            foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                try
+                {
+                    var mediaStream = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+                    AddDolbyVisionProfile(ref mediaStream, ref dvProfiles, movie.SortName, true);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug($"CalculateDVProfileInfo-Error {movie.SortName}: {ex.Message}");
+                }
+            }
+
+            foreach (var episode in _allEpisodes.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                try
+                {
+                    var mediaStream = episode.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+                    AddDolbyVisionProfile(ref mediaStream, ref dvProfiles, episode.SortName, false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.Debug($"CalculateDVProfileInfo-episode-Error {episode.SortName}: {ex.Message}");
+                }
+            }
+
+            return new ValueGroup
+            {
+                Title = Constants.DolbyVisionProfiles,
+                ValueLineOne = $"<table><tr><td></td><td>Movies</td><td>Episodes</td></tr>{string.Join("", dvProfiles.Values)}</table>",
+                ValueLineTwo = "",
+                ValueLineThree = null,
+                ExtraInformation = Constants.HelpDolbyVisionProile,
+                Size = "half"
+            };
+        }
+
 
         public ValueGroup CalculateMovieCodecs()
         {
@@ -495,7 +563,7 @@ namespace Statistics.Helpers
                         codecCounts[codec] = codecModel;
                     }
                     codecCounts[codec].Episodes++;
-                    _logger.Debug($"CalculateMovieCodecs-episode {(episode.Series?.SortName ?? "invalid name")}: {episode.SortName} {codec}"); 
+                    _logger.Debug($"CalculateMovieCodecs-episode {(episode.Series?.SortName ?? "invalid name")}: {episode.SortName} {codec}");
                 }
                 catch (Exception ex)
                 {
@@ -619,7 +687,7 @@ namespace Statistics.Helpers
 
             if (_allSeries.Any())
             {
-                
+
                 foreach (var show in _allSeries)
                 {
                     double showSize = 0;
@@ -668,7 +736,7 @@ namespace Statistics.Helpers
 
         public ValueGroup CalculateMostWatchedShows()
         {
-            var showList = _allSeries.OrderBy(x => x.SortName); 
+            var showList = _allSeries.OrderBy(x => x.SortName);
             var users = _allUsers;
             var showProgress = new List<ShowProgress>();
 
@@ -1265,7 +1333,7 @@ namespace Statistics.Helpers
             string valueLineTwo = "";
             string id = null;
 
-            
+
             var lowestRatedMovie = _allMovies
                 .Where(x => x.CommunityRating.HasValue && x.CommunityRating != 0)
                 .OrderBy(x => x.CommunityRating)

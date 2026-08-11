@@ -24,6 +24,7 @@
         internal const string TotalShowsFinished = "Total Series Finished";
         internal const string MediaQualities = "Media Qualities";
         internal const string MediaCodecs = "Media Codecs";
+        internal const string DolbyVisionProfiles = "Dolby Vision Profiles";
         internal const string LongestMovie = "Longest Movie Runtime";
         internal const string LongestShow = "Longest TV Series Runtime";
         internal const string BiggestMovie = "Largest Movie";
@@ -53,6 +54,7 @@
         internal const string HelpUserLeastWatchedShows = "Least watched shows based on episodes finished, not series completed.";
         internal const string HelpQualities = "Entries with Resolution Not Available can be located in the log file after debug logging has been enabled by searching CalculateMovieQualities.";
         internal const string HelpCodec = "Entries with Unknown can be located in the log file after debug logging has been enabled by searching CalculateMovieCodecs";
+        internal const string HelpDolbyVisionProile = "Videos with hevc or av1 codecs will also track their dolby vision profile.";
         internal const string HelpUserTotalShowsFinished = "Total shows this user has finished watching. Only normal episodes, so no specials are needed to be watched.";
         internal const string HelpUserTotalShows = "Total TV Series this user can see in his/her Emby library.";
         internal const string HelpUserTotalEpisode = "Total episodes this user can see in his/her Emby library.";
