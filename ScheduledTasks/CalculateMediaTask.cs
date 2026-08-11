@@ -67,6 +67,7 @@ namespace Statistics.ScheduledTasks
             var numComplete = 0;
 
             PluginConfiguration.LastUpdated = DateTime.Now.ToString("g");
+            PluginConfiguration.Version = Plugin.Instance.Version.ToString( 4 );
             PluginConfiguration.ServerId = _appHost.SystemId;
 
             numComplete++;
@@ -74,7 +75,6 @@ namespace Statistics.ScheduledTasks
 
 
             var calculator = new Calculator(_userManager, _libraryManager, _userDataManager, _fileSystem, _logger, _providerManager, cancellationToken);
-           
             using (calculator)
             {
                 calculator.SetUser(null);

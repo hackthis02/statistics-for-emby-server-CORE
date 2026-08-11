@@ -74,6 +74,7 @@ namespace statistics.ScheduledTasks
             var numComplete = 0;
 
             PluginConfiguration.LastUpdated = DateTime.Now.ToString("g");
+            PluginConfiguration.Version = Plugin.Instance.Version.ToString( 4 );
             PluginConfiguration.ServerId = _appHost.SystemId;
 
             numComplete++;
