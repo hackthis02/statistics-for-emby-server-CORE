@@ -55,23 +55,23 @@ namespace statistics
                 },
                 new PluginPageInfo
                 {
-                    Name = "StatisticsDVProfileList",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.dvProfilePage.html"
-                },
-                new PluginPageInfo
-                {
-                    Name = "StatisticsDVProfileListJS",
-                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.dvProfilePage.js"
-                },
-                new PluginPageInfo
-                {
-                    Name = "StatisticsDVProfileListText",
+                    Name = "StatisticsMovieDVProfileText",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.dvProfileTextPage.html"
                 },
                 new PluginPageInfo
                 {
-                    Name = "StatisticsDVProfileListTextJS",
+                    Name = "StatisticsMovieDVProfileTextJS",
                     EmbeddedResourcePath = GetType().Namespace + ".Configuration.dvProfileTextPage.js"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsEpisodeDVProfileText",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.episodeDVProfileTextPage.html"
+                },
+                new PluginPageInfo
+                {
+                    Name = "StatisticsEpisodeDVProfileTextJS",
+                    EmbeddedResourcePath = GetType().Namespace + ".Configuration.episodeDVProfileTextPage.js"
                 },
                 new PluginPageInfo
                 {

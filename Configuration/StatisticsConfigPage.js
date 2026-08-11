@@ -154,18 +154,6 @@
                     Dashboard.navigate(href);
                 });
 
-            view.querySelector("#GoToDVProfileList").addEventListener("click",
-                function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsDVProfileList");
-                    Dashboard.navigate(href);
-                });
-
-            view.querySelector("#GoToDVProfileTextList").addEventListener("click",
-                function () {
-                    var href = Dashboard.getConfigurationPageUrl("StatisticsDVProfileListText");
-                    Dashboard.navigate(href);
-                });
-
             view.querySelector("#GoToMovieList").addEventListener("click",
                 function () {
                     var href = Dashboard.getConfigurationPageUrl("StatisticsMovieList");
@@ -201,6 +189,20 @@
                     });
                 }
             );
+
+            
+            view.querySelector("#GoToMovieDVProfileTextList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsMovieDVProfileText");
+                    Dashboard.navigate(href);
+                });
+
+            view.querySelector("#GoToEpisodeDVProfileTextList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsEpisodeDVProfileText");
+                    Dashboard.navigate(href);
+                });
+
         }
 
 

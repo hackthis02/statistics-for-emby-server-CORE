@@ -2,9 +2,9 @@
 
 	<PropertyGroup>
 		<TargetFrameworks>netstandard2.0;</TargetFrameworks>
-		<Version>3.4.2.0</Version>
-		<AssemblyVersion>3.4.2.0</AssemblyVersion>
-		<FileVersion>3.4.2.0</FileVersion>
+		<Version>3.4.2.1</Version>
+		<AssemblyVersion>3.4.2.1</AssemblyVersion>
+		<FileVersion>3.4.2.1</FileVersion>
 	</PropertyGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
@@ -18,11 +18,11 @@
 	</Target>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Configuration\dvProfilePage.html" />
-		<EmbeddedResource Include="Configuration\dvProfilePage.js" />
-
 		<EmbeddedResource Include="Configuration\dvProfileTextPage.html" />
 		<EmbeddedResource Include="Configuration\dvProfileTextPage.js" />
+
+		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.html" />
+		<EmbeddedResource Include="Configuration\episodeDVProfileTextPage.js" />
 
 		<EmbeddedResource Include="Configuration\moviePage.html" />
 		<EmbeddedResource Include="Configuration\moviePage.js" />
