@@ -18,8 +18,12 @@
 
             <h2>Movie statistics</h2>
             <div style="max-width: 900px; display: flex; gap: 10px; ">
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieList" id="GoToMovieList">View movie list</button>
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieTextList" id="GoToMovieTextList">View movie list (text-based)</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieList" id="GoToMovieList">View movie codec list</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieTextList" id="GoToMovieTextList">View movie codec list (text-based)</button>
+            </div>
+            <div style="max-width: 900px; display: flex; gap: 10px; ">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToEpisodeList" id="GoToEpisodeList">View episode codec list</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToEpisodeTextList" id="GoToEpisodeTextList">View episode codec list (text-based)</button>
             </div>
 
             <div class="statRow" name="movieStat" id="movieStat"></div>
@@ -37,6 +41,11 @@
             <div style="clear: both;"></div>
 
             <h2>Dolby Vision Profile Statistics</h2>
+            <label class="emby-checkbox-label">
+                <input id="showUnknownDVProfileCount" is="emby-checkbox" class="emby-checkbox" type="checkbox">
+                <span class="checkboxLabel">Show non-HEVC Dolby Vision profiles? (requires re-running tasks to update statistics)</span>
+            </label>
+
             <div class="statRow" name="dvProfileStats" id="dvProfileStats"></div>
             <h3>Movies</h3>
             <div style="max-width: 900px; display: flex; gap: 10px;">

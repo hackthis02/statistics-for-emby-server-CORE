@@ -10,12 +10,14 @@ namespace statistics.Configuration
         public PluginConfiguration()
         {
             UserStats = new List<UserStat>();
+            showUnknownDVProfileCount = true;
+            enableHyperlinks = false;
         }
         public List<UserStat> UserStats { get; set; }
 
         public ValueGroup MovieQualities { get; set; }
         public ValueGroup MovieCodecs { get; set; }
-        public ValueGroup MovieDVProfiles { get; set; }
+        public ValueGroup DolbyVisionProfiles { get; set; }
 
         public ValueGroup MostActiveUsers { get; set; }
         public ValueGroup TotalUsers { get; set; }
@@ -49,8 +51,24 @@ namespace statistics.Configuration
         public string ServerId { get; set; }
 
         public bool enableHyperlinks { get; set; }
+        public bool showUnknownDVProfileCount { get; set; }
         public MovieCollection MovieQualityItems { get; set; }
         public MovieCollection MovieDVProfileItems { get; set; }
+        public MovieCollection EpisodeDVProfileItems { get; set; }
+        
+        public static bool IsUnknownDolbyProfile(string profile)
+        {
+            if (string.IsNullOrEmpty(profile))
+                return true;
+            var unknownProfiles = new List<string>
+            {
+                "Unknown Media",
+                "Unknown Dolby Profile",
+                "Non Dolby Vision Compatible Codec",
+                "No Dolby Profile"
+            };
+            return unknownProfiles.Contains(profile);
+        }
     }
 }
 

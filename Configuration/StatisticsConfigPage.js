@@ -70,6 +70,7 @@
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
 
                 view.querySelector("#showHyperLinks").checked = config.showHyperLinks;
+                view.querySelector("#showUnknownDVProfileCount").checked = config.showUnknownDVProfileCount;
 
                 view.querySelector("#lastRunInfo").innerHTML = "Last statistics finished at <b> " + config.LastUpdated + "</b> - Version <b>" + config.Version + "</b> - Build Date - <b>" + config.BuildDate + "</b>";
                 if (config.LastUpdated === undefined) {
@@ -97,7 +98,7 @@
                     view.querySelector("#generalStat").innerHTML = (generalStat);
 
                     var dvProfileStats = "";
-                    dvProfileStats += createStat(config.MovieDVProfiles, view, undefined, "dvProfileStats");
+                    dvProfileStats += createStat(config.DolbyVisionProfiles, view, undefined, "dvProfileStats");
                     view.querySelector("#dvProfileStats").innerHTML = (dvProfileStats);
 
                     var movieStat = "";
@@ -187,6 +188,16 @@
                     ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                         config.enableHyperlinks = view.querySelector("#showHyperLinks").checked;
                         ApiClient.updatePluginConfiguration(pluginId, config);
+                    });
+                }
+            );
+
+            view.querySelector("#showUnknownDVProfileCount").addEventListener("click",
+                function () {
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        config.showUnknownDVProfileCount = view.querySelector("#showUnknownDVProfileCount").checked;
+                        ApiClient.updatePluginConfiguration(pluginId, config);
+
                     });
                 }
             );
