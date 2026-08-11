@@ -10,7 +10,6 @@ namespace statistics.Configuration
         public PluginConfiguration()
         {
             UserStats = new List<UserStat>();
-            enableTrackDolbyVisionProfiles = true;
         }
         public List<UserStat> UserStats { get; set; }
 
@@ -50,7 +49,6 @@ namespace statistics.Configuration
         public string ServerId { get; set; }
 
         public bool enableHyperlinks { get; set; }
-        public bool enableTrackDolbyVisionProfiles { get; set; }
         public MovieQualityObj MovieQualityItems { get; set; }
     }
 }

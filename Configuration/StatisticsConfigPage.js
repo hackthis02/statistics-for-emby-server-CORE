@@ -10,17 +10,21 @@
         function showInfo(text, title) {
             Dashboard.alert({ message: text, title: title });
         }
-        function createStat(valueGroup, view, serverId = undefined) {
+        function createStat(valueGroup, view, serverId = undefined, rootDivName="") {
             if (!valueGroup || !view)
                 return "";
 
-            var html = "<div class=\"col " + valueGroup.Size + "\">";
+            var html = `<div class="col {valueGroup.Size}"`;
+            if (rootDivName != "") {
+                html += ` id="${rootDivName}"`;
+            }
+            html += "\">";
             html += "<div class=\"statCard\">";
             html += "<div class=\"statCard-content\">";
 
             if (valueGroup.ExtraInformation !== undefined) {
                 var id = valueGroup.Title.replace(/\s/g, "");
-                html += "<div id=\"" + id + "\" class=\"infoBlock\"><i class=\"md-icon\">info</i></div>";
+                html += `<div id="${id}" class="infoBlock"><i class="md-icon">info</i></div>`;
 
                 dynamicbuttons.push({ id: id, info: valueGroup.ExtraInformation, title: valueGroup.Title });
             }
@@ -28,27 +32,27 @@
             var showImage = (serverId !== undefined) && (valueGroup.Id !== undefined);
             if (showImage) {
                 var imageUrl = ApiClient.getImageUrl(valueGroup.Id, { type: "Primary", quality: 90 });
-                html += "<a is=\"emby-linkbutton\" href=\"/item?id=" + valueGroup.Id + "&serverId=" + serverId + "\"><img src=\"" + imageUrl + "\" height=\"105px\"/></a>";
+                html += `<a is="emby-linkbutton" href="/item?id=${valueGroup.Id}&serverId=${serverId}"><img src="${imageUrl}" height="105px"/></a>`;    
                 html += "<div>";
 
                 if (valueGroup.Title !== undefined) {
-                    html += "<div class=\"statCard-stats-title-left\">" + valueGroup.Title + "</div>";
+                    html += `<div class="statCard-stats-title-left">${valueGroup.Title}</div>`;
                 }
             }
             else if (valueGroup.Title !== undefined) {
                 html += "<div style=\"width: 100%;\">";
-                html += "<div class=\"statCard-stats-title\">" + valueGroup.Title + "</div>";
+                html += `<div class="statCard-stats-title">${valueGroup.Title}</div>`;
             }
             if (valueGroup.ValueLineOne !== undefined) {
-                html += "<div class=\"statCard-stats-number\">" + valueGroup.ValueLineOne + "</div>"
+                html += `<div class="statCard-stats-number">${valueGroup.ValueLineOne}</div>`
             }
 
             if (valueGroup.ValueLineTwo !== undefined) {
-                html += "<div class=\"statCard-stats-number\">" + valueGroup.ValueLineTwo + "</div>"
+                html += `<div class="statCard-stats-number">${valueGroup.ValueLineTwo}</div>`
             }
 
             if (valueGroup.ValueLineThree !== undefined) {
-                html += "<div class=\"statCard-stats-number\">" + valueGroup.ValueLineThree + "</div>"
+                html += `<div class="statCard-stats-number">${valueGroup.ValueLineThree}</div>`
             }
 
             html += "</div>";
@@ -65,7 +69,6 @@
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
 
-                view.querySelector("#trackDolbyVisionProfiles").checked = config.enableTrackDolbyVisionProfiles;
                 view.querySelector("#showHyperLinks").checked = config.showHyperLinks;
 
                 view.querySelector("#lastRunInfo").innerHTML = "Last statistics finished at <b> " + config.LastUpdated + "</b> - Version <b>" + config.Version + "</b> - Build Date - <b>" + config.BuildDate + "</b>";
@@ -90,15 +93,11 @@
                     var generalStat = "";
                     generalStat += createStat(config.MovieQualities, view);
                     generalStat += createStat(config.MovieCodecs, view);
-
-                    if (config.enableTrackDolbyVisionProfiles) {
-                        generalStat += createStat(config.MovieDVProfiles, view);
-                    }
+                    generalStat += createStat(config.MovieDVProfiles, view, undefined, "dvProfileStats");
 
                     view.querySelector("#generalStat").innerHTML = (generalStat);
 
                     var movieStat = "";
-
                     movieStat += createStat(config.TotalMovies, view);
                     movieStat += createStat(config.TotalBoxsets, view);
                     movieStat += createStat(config.TotalMovieStudios, view);
@@ -167,16 +166,6 @@
                 function () {
                     Dashboard.navigate(Dashboard.getConfigurationPageUrl("StatisticsShowOverview"));
                 });
-
-            view.querySelector("#trackDolbyVisionProfiles").addEventListener("click",
-                function () {
-                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                        config.enableTrackDolbyVisionProfiles = view.querySelector("#trackDolbyVisionProfiles").checked;
-                        ApiClient.updatePluginConfiguration(pluginId, config);
-                        window.location.reload();
-                    });
-                }
-            );
 
             view.querySelector("#showHyperLinks").addEventListener("click",
                 function () {
