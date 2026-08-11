@@ -460,16 +460,24 @@ namespace Statistics.Helpers
             return "Resolution Not Available";
         }
 
-        private bool AddDolbyVisionProfile(ref MediaStream mediaStream, ref Dictionary<string, DVProfileModel> dvProfiles, string mediaName, bool isMovie )
+        private string getDolbyVisionProfile(MediaStream mediaStream)
         {
-            if (mediaStream == null)
-                return false;
+            if (mediaStream == null || mediaStream.Profile == null)
+                return "";
 
             var codec = mediaStream.Codec.ToLower();
             if (codec != "hevc" && codec != "av1")
-                return false;
+                return "";
 
             var dvProfile = mediaStream.ExtendedVideoSubTypeDescription;
+            return dvProfile;
+        }
+
+        private bool AddDolbyVisionProfile(ref MediaStream mediaStream, ref Dictionary<string, DVProfileModel> dvProfiles, string mediaName, bool isMovie )
+        {
+            var dvProfile = getDolbyVisionProfile(mediaStream);
+            if (dvProfile == null || dvProfile == "")
+                return false;
 
             if (!dvProfiles.TryGetValue(dvProfile, out var dvProfileModel))
             {
@@ -582,7 +590,7 @@ namespace Statistics.Helpers
             };
         }
 
-        public MovieQualityObj CalculateMovieQualityList()
+        public MovieCollection CalculateMovieQualityList()
         {
             var qualityMovieMap = new Dictionary<string, List<statistics.Models.Movie>>();
 
@@ -603,14 +611,51 @@ namespace Statistics.Helpers
                     _logger.Debug($"CalculateMovieQualityList-Unknown {movie.Name}");
             }
 
-            var list = qualityMovieMap.Select(pair => new MovieQuality
+            var list = qualityMovieMap.Select(pair => new MovieGroup
             {
                 Title = pair.Key,
                 Movies = pair.Value
             }).ToList();
 
 
-            return new MovieQualityObj()
+            return new MovieCollection()
+            {
+                Count = list.Count(),
+                Movies = list
+            };
+        }
+
+        public MovieCollection CalculateDVProfileList()
+        {
+            var dvProfileMap = new Dictionary<string, List<statistics.Models.Movie>>();
+
+            foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
+            {
+                _logger.Debug($"CalculateDVProfileList {movie.Name}");
+                var mediaStream = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
+
+                var dvProfile = getDolbyVisionProfile(mediaStream);
+                if (dvProfile == null || dvProfile == "") {
+                    continue;
+                }
+
+                if (!dvProfileMap.TryGetValue(dvProfile, out var movieList))
+                {
+                    movieList = new List<statistics.Models.Movie>();
+                    dvProfileMap[dvProfile] = movieList;
+                }
+                movieList.Add(new statistics.Models.Movie { Id = movie.Id.ToString(), Name = movie.Name, Year = movie.ProductionYear });
+                _logger.Debug($"{dvProfile} {dvProfileMap.Count}");
+            }
+
+            var list = dvProfileMap.Select(pair => new MovieGroup
+            {
+                Title = pair.Key,
+                Movies = pair.Value
+            }).ToList();
+
+
+            return new MovieCollection()
             {
                 Count = list.Count(),
                 Movies = list

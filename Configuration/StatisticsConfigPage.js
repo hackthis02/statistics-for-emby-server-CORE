@@ -150,6 +150,12 @@
                     Dashboard.navigate(href);
                 });
 
+            view.querySelector("#GoToDVProfileList").addEventListener("click",
+                function () {
+                    var href = Dashboard.getConfigurationPageUrl("StatisticsDVProfileList");
+                    Dashboard.navigate(href);
+                });
+
             view.querySelector("#GoToMovieList").addEventListener("click",
                 function () {
                     var href = Dashboard.getConfigurationPageUrl("StatisticsMovieList");

@@ -49,6 +49,8 @@ namespace statistics.Configuration
         public string ServerId { get; set; }
 
         public bool enableHyperlinks { get; set; }
-        public MovieQualityObj MovieQualityItems { get; set; }
+        public MovieCollection MovieQualityItems { get; set; }
+        public MovieCollection DVProfileItems { get; set; }
     }
 }
+
