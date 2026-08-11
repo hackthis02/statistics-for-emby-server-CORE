@@ -50,7 +50,7 @@ namespace statistics.Configuration
 
         public bool enableHyperlinks { get; set; }
         public MovieCollection MovieQualityItems { get; set; }
-        public MovieCollection DVProfileItems { get; set; }
+        public MovieCollection MovieDVProfileItems { get; set; }
     }
 }
 

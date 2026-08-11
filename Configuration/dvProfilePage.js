@@ -13,9 +13,9 @@
             Dashboard.showLoadingMsg();
 
             ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                for (var h = 0, len = config.DVProfileItems.Count; h < len; h++) {
+                for (var h = 0, len = config.MovieDVProfileItems.Count; h < len; h++) {
                     var innerText = ``
-                    var currMovieGroup = config.DVProfileItems.Movies[h];
+                    var currMovieGroup = config.MovieDVProfileItems.Movies[h];
 
                     currMovieGroup.Movies.forEach((v) => {
                         var imageUrl = ApiClient.getImageUrl(v.Id, { type: "Primary", quality: 90 });

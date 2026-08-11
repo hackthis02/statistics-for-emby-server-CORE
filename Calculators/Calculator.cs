@@ -666,13 +666,13 @@ namespace Statistics.Helpers
             };
         }
 
-        public MovieCollection CalculateDVProfileList()
+        public MovieCollection CalculateMovieDVProfileList()
         {
             var dvProfileMap = new Dictionary<string, List<statistics.Models.Movie>>();
 
             foreach (var movie in _allMovies.Where(w => w.SortName != null).OrderBy(x => x.SortName))
             {
-                _logger.Debug($"CalculateDVProfileList {movie.Name}");
+                _logger.Debug($"CalculateMovieDVProfileList {movie.Name}");
                 var mediaStream = movie.GetMediaStreams().FirstOrDefault(s => s != null && s.Type == MediaStreamType.Video);
 
                 var dvProfile = getDolbyVisionProfile(mediaStream);
