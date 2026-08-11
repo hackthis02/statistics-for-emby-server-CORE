@@ -8,13 +8,13 @@
 	</PropertyGroup>
 
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="echo killing current EmbyServer" />
-        <Exec Command="taskkill /IM EmbyServer.exe /F" IgnoreExitCode="true" />
-        <Exec Command="taskkill /IM embytray.exe /F" IgnoreExitCode="true" />
-		<Exec Command="echo copy $(TargetPath) C:\Users\scott.TOWEL42\Dropbox\home\bin\EmbyServer\programdata\plugins\" />
-		<Exec Command="copy $(TargetPath) C:\Users\scott.TOWEL42\Dropbox\home\bin\EmbyServer\programdata\plugins\" />
-        <Exec Command="echo Launching Emby Server" />
-        <Exec Command="C:\Users\scott.TOWEL42\Dropbox\home\bin\EmbyServer\system\EmbyServer.exe" />
+		<Exec Command="echo killing current EmbyServer
+        taskkill /T /F /IM &quot;EmbyServer*&quot; 
+        set EMBY_ROOT=&quot;d:\Emby\EmbyServer\&quot;
+		echo copy &quot;$(TargetPath)&quot; &quot;%25EMBY_ROOT%25\programdata\plugins\&quot;
+		copy $(TargetPath) &quot;%25EMBY_ROOT%25\programdata\plugins\&quot;
+        echo &quot;Launching Emby Server&quot;
+        &quot;%25EMBY_ROOT%25\system\EmbyServer.exe&quot;" IgnoreExitCode="true"/>
 	</Target>
 
 	<ItemGroup>
