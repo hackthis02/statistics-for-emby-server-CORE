@@ -17,16 +17,8 @@
             <div class="statRow" name="generalStat" id="generalStat"></div>
 
             <h2>Movie statistics</h2>
-            <div style="max-width: 900px;">
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToDVProfileList" id="GoToDVProfileList">View Dolby Vision Profile list</button>
-            </div>
-            <div style="max-width: 900px;">
-                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToDVProfileTextList" id="GoToDVProfileTextList">View Dolby Vision Profile list (text-based)</button>
-            </div>
-            <div style="max-width: 900px;">
+            <div style="max-width: 900px; display: flex; gap: 10px; ">
                 <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieList" id="GoToMovieList">View movie list</button>
-            </div>
-            <div style="max-width: 900px;">
                 <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToMovieTextList" id="GoToMovieTextList">View movie list (text-based)</button>
             </div>
 
@@ -43,6 +35,20 @@
             </div>
             <div class="statRow" name="showStat" id="showStat"></div>
             <div style="clear: both;"></div>
+
+            <h2>Dolby Vision Profile Statistics</h2>
+            <div class="statRow" name="dvProfileStats" id="dvProfileStats"></div>
+            <h3>Movies</h3>
+            <div style="max-width: 900px; display: flex; gap: 10px;">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToDVProfileList" id="GoToDVProfileList">View Dolby Vision Profile list</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToDVProfileTextList" id="GoToDVProfileTextList">View Dolby Vision Profile list (text-based)</button>
+            </div>
+            <h3>TV Shows</h3>
+            <div style="max-width: 900px; display: flex; gap: 10px;">
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToTVDVProfileList" id="GoToTVDVProfileList">View Dolby Vision Profile list</button>
+                <button is="emby-button" type="button" class="raised button-cancel block emby-button" name="GoToTVDVProfileTextList" id="GoToTVDVProfileTextList">View Dolby Vision Profile list (text-based)</button>
+            </div>
+
         </div>
     </div>
 

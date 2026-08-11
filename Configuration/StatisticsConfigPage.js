@@ -93,9 +93,12 @@
                     var generalStat = "";
                     generalStat += createStat(config.MovieQualities, view);
                     generalStat += createStat(config.MovieCodecs, view);
-                    generalStat += createStat(config.MovieDVProfiles, view, undefined, "dvProfileStats");
 
                     view.querySelector("#generalStat").innerHTML = (generalStat);
+
+                    var dvProfileStats = "";
+                    dvProfileStats += createStat(config.MovieDVProfiles, view, undefined, "dvProfileStats");
+                    view.querySelector("#dvProfileStats").innerHTML = (dvProfileStats);
 
                     var movieStat = "";
                     movieStat += createStat(config.TotalMovies, view);
